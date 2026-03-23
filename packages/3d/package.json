@@ -1,0 +1,35 @@
+{
+  "name": "@seegak/3d",
+  "version": "0.1.0",
+  "description": "3D volume and mesh rendering for Seegak",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./volume": {
+      "types": "./dist/volume/volume-view.d.ts",
+      "import": "./dist/volume/volume-view.js"
+    },
+    "./mesh": {
+      "types": "./dist/mesh/mesh-view.d.ts",
+      "import": "./dist/mesh/mesh-view.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@seegak/core": "workspace:*",
+    "@seegak/bio-charts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

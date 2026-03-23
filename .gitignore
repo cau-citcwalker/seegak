@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+*.local
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

@@ -1,0 +1,35 @@
+{
+  "name": "@seegak/analysis",
+  "version": "0.1.0",
+  "description": "Single-cell analysis UI components for Seegak (gating, obs sets, comparative)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./gating": {
+      "types": "./dist/gating/gating-plot.d.ts",
+      "import": "./dist/gating/gating-plot.js"
+    },
+    "./obs-sets": {
+      "types": "./dist/obs-sets/obs-set-tree.d.ts",
+      "import": "./dist/obs-sets/obs-set-tree.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@seegak/core": "workspace:*",
+    "@seegak/bio-charts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

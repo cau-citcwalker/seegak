@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "paths": {
+      "@seegak/core":       ["../core/src/index.ts"],
+      "@seegak/bio-charts": ["../bio-charts/src/base-chart.ts"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../bio-charts" }
+  ]
+}

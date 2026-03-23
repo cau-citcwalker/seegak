@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "jsx": "react-jsx"
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../bio-charts" },
+    { "path": "../human-body-map" },
+    { "path": "../genomics" },
+    { "path": "../coordination" },
+    { "path": "../data-loaders" },
+    { "path": "../spatial" },
+    { "path": "../analysis" },
+    { "path": "../3d" }
+  ]
+}

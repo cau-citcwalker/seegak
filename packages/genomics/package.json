@@ -1,0 +1,39 @@
+{
+  "name": "@seegak/genomics",
+  "version": "0.1.0",
+  "description": "Genomics visualizations for Seegak (Volcano, Enrichment, Genomic Profiles)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./volcano": {
+      "types": "./dist/charts/volcano.d.ts",
+      "import": "./dist/charts/volcano.js"
+    },
+    "./enrichment": {
+      "types": "./dist/charts/enrichment.d.ts",
+      "import": "./dist/charts/enrichment.js"
+    },
+    "./genomic-profile": {
+      "types": "./dist/charts/genomic-profile.d.ts",
+      "import": "./dist/charts/genomic-profile.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@seegak/core": "workspace:*",
+    "@seegak/bio-charts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
