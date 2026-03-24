@@ -127,12 +127,24 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
       chart3DRef.current.setData(data3D);
     }, [data, z, is3D]);
 
-    // Re-render when toggling (trigger resize so the visible chart fills the container)
+    // When toggling, the previously-hidden container has a stale canvas size.
+    // Force a resize + data re-upload so the chart renders correctly.
     useEffect(() => {
+      // Wait for display:block to take effect
       requestAnimationFrame(() => {
-        if (is3D) chart3DRef.current?.render();
-        else chart2DRef.current?.render();
+        if (is3D) {
+          if (chart3DRef.current && data && z) {
+            chart3DRef.current.resize();
+            chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
+          }
+        } else {
+          if (chart2DRef.current && data) {
+            chart2DRef.current.resize();
+            chart2DRef.current.update(data);
+          }
+        }
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is3D]);
 
     const toggle3D = useCallback(() => {
