@@ -30,4 +30,4 @@ export { MeshView }  from './mesh/mesh-view.js';
 export { Scatter3DLayer } from './scatter/scatter3d-layer.js';
 export { Scatter3DView }  from './scatter/scatter3d-view.js';
 export { Scatter3DToolbar } from './scatter/scatter3d-toolbar.js';
-export type { Scatter3DToolbarOptions } from './scatter/scatter3d-toolbar.js';
+export type { Scatter3DToolbarOptions, ColorByMode } from './scatter/scatter3d-toolbar.js';

@@ -3,10 +3,16 @@
  * flatten toggle, point size slider, and reset camera button.
  */
 
+export type ColorByMode = 'cell-set' | 'expression';
+
 export interface Scatter3DToolbarOptions {
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   initialPointSize?: number;
   initialFlatten?: boolean;
+  /** Show color-by selector. Default: false */
+  showColorBy?: boolean;
+  /** Show hull toggle. Default: false */
+  showHull?: boolean;
 }
 
 export class Scatter3DToolbar {
@@ -14,10 +20,14 @@ export class Scatter3DToolbar {
   private flattenCheckbox: HTMLInputElement;
   private sizeSlider: HTMLInputElement;
   private sizeLabel: HTMLSpanElement;
+  private colorBySelect: HTMLSelectElement | null = null;
+  private hullCheckbox: HTMLInputElement | null = null;
 
   private onFlattenChange: (flatten: boolean) => void;
   private onPointSizeChange: (size: number) => void;
   private onResetCamera: () => void;
+  private onColorByChange: ((mode: ColorByMode) => void) | null = null;
+  private onHullChange: ((show: boolean) => void) | null = null;
 
   // Drag state
   private isDragging = false;
@@ -30,12 +40,16 @@ export class Scatter3DToolbar {
       onFlattenChange: (flatten: boolean) => void;
       onPointSizeChange: (size: number) => void;
       onResetCamera: () => void;
+      onColorByChange?: (mode: ColorByMode) => void;
+      onHullChange?: (show: boolean) => void;
     },
     options: Scatter3DToolbarOptions = {},
   ) {
     this.onFlattenChange = callbacks.onFlattenChange;
     this.onPointSizeChange = callbacks.onPointSizeChange;
     this.onResetCamera = callbacks.onResetCamera;
+    this.onColorByChange = callbacks.onColorByChange ?? null;
+    this.onHullChange = callbacks.onHullChange ?? null;
 
     const pos = options.position ?? 'top-left';
 
@@ -141,6 +155,64 @@ export class Scatter3DToolbar {
     });
     this.el.appendChild(resetBtn);
 
+    // ─── Color By Selector (optional) ───
+    if (options.showColorBy) {
+      const colorRow = document.createElement('div');
+      colorRow.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(200,200,200,0.85);margin-top:2px;';
+
+      const colorLabel = document.createElement('span');
+      colorLabel.textContent = 'Color';
+      colorLabel.style.cssText = 'flex-shrink:0;';
+
+      this.colorBySelect = document.createElement('select');
+      this.colorBySelect.style.cssText = [
+        'flex:1',
+        'background:rgba(255,255,255,0.07)',
+        'border:1px solid rgba(255,255,255,0.12)',
+        'border-radius:3px',
+        'color:rgba(200,200,200,0.85)',
+        'font-size:10px',
+        'padding:3px 4px',
+        'cursor:pointer',
+        'outline:none',
+      ].join(';');
+
+      const optCellSet = document.createElement('option');
+      optCellSet.value = 'cell-set';
+      optCellSet.textContent = 'Cell Set';
+      const optExpr = document.createElement('option');
+      optExpr.value = 'expression';
+      optExpr.textContent = 'Expression';
+      this.colorBySelect.appendChild(optCellSet);
+      this.colorBySelect.appendChild(optExpr);
+
+      this.colorBySelect.addEventListener('change', () => {
+        this.onColorByChange?.(this.colorBySelect!.value as ColorByMode);
+      });
+
+      colorRow.appendChild(colorLabel);
+      colorRow.appendChild(this.colorBySelect);
+      this.el.appendChild(colorRow);
+    }
+
+    // ─── Hull Toggle (optional) ───
+    if (options.showHull) {
+      const hullRow = document.createElement('label');
+      hullRow.style.cssText = 'display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:rgba(200,200,200,0.85);';
+
+      this.hullCheckbox = document.createElement('input');
+      this.hullCheckbox.type = 'checkbox';
+      this.hullCheckbox.checked = false;
+      this.hullCheckbox.style.cssText = 'accent-color:#3b82f6;margin:0;cursor:pointer;';
+      this.hullCheckbox.addEventListener('change', () => {
+        this.onHullChange?.(this.hullCheckbox!.checked);
+      });
+
+      hullRow.appendChild(this.hullCheckbox);
+      hullRow.appendChild(document.createTextNode('Cluster Hull'));
+      this.el.appendChild(hullRow);
+    }
+
     container.appendChild(this.el);
   }
 
@@ -153,6 +225,14 @@ export class Scatter3DToolbar {
   setPointSize(v: number): void {
     this.sizeSlider.value = String(v);
     this.sizeLabel.textContent = String(v);
+  }
+
+  setColorBy(mode: ColorByMode): void {
+    if (this.colorBySelect) this.colorBySelect.value = mode;
+  }
+
+  setHull(v: boolean): void {
+    if (this.hullCheckbox) this.hullCheckbox.checked = v;
   }
 
   show(): void { this.el.style.display = 'flex'; }
