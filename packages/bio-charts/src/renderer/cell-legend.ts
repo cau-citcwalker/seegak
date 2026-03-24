@@ -17,16 +17,27 @@ export interface CellLegendOptions {
 
 const EYE_ON = `<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="10" cy="10" r="2.5"/></svg>`;
 const EYE_OFF = `<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><line x1="3" y1="3" x2="17" y2="17"/></svg>`;
+const COLLAPSE_ICON = `<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="10" x2="16" y2="10"/></svg>`;
+const EXPAND_ICON = `<svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="10" x2="16" y2="10"/><line x1="10" y1="4" x2="10" y2="16"/></svg>`;
 
 // ─── CellLegend ───
 
 export class CellLegend {
   private el: HTMLElement;
+  private headerEl: HTMLElement;
   private listEl: HTMLElement;
+  private footerEl: HTMLElement;
+  private minimizedEl: HTMLElement;
   private entries: ClusterEntry[] = [];
   private focusedLabel: string | null = null;
   private rowEls = new Map<string, HTMLElement>();
   private clickTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private _minimized = false;
+
+  // Drag state
+  private isDragging = false;
+  private dragOffsetX = 0;
+  private dragOffsetY = 0;
 
   constructor(
     container: HTMLElement,
@@ -36,6 +47,7 @@ export class CellLegend {
   ) {
     const pos = options.position ?? 'right';
 
+    // ─── Expanded panel ───
     this.el = document.createElement('div');
     this.el.style.cssText = [
       'position:absolute',
@@ -52,12 +64,13 @@ export class CellLegend {
       'overflow:hidden',
       'backdrop-filter:blur(6px)',
       'max-height:' + (options.maxHeight ?? 420) + 'px',
+      'user-select:none',
     ].join(';');
 
-    // Title bar
-    const header = document.createElement('div');
-    header.style.cssText = [
-      'padding:7px 10px 5px',
+    // Header with drag handle + title + minimize button
+    this.headerEl = document.createElement('div');
+    this.headerEl.style.cssText = [
+      'padding:5px 8px 5px 10px',
       'font-size:10px',
       'font-weight:600',
       'color:rgba(255,255,255,0.5)',
@@ -65,9 +78,44 @@ export class CellLegend {
       'text-transform:uppercase',
       'border-bottom:1px solid rgba(255,255,255,0.08)',
       'flex-shrink:0',
+      'display:flex',
+      'align-items:center',
+      'gap:4px',
+      'cursor:grab',
     ].join(';');
-    header.textContent = options.title ?? '세포 유형';
-    this.el.appendChild(header);
+
+    // Drag dots
+    const dragDots = document.createElement('span');
+    dragDots.textContent = '⠿';
+    dragDots.style.cssText = 'color:rgba(255,255,255,0.2);font-size:10px;line-height:1;';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = options.title ?? 'Cell Types';
+    titleSpan.style.cssText = 'flex:1;';
+
+    // Minimize button
+    const minBtn = document.createElement('button');
+    minBtn.innerHTML = COLLAPSE_ICON;
+    minBtn.title = 'Minimize';
+    minBtn.style.cssText = [
+      'background:none',
+      'border:none',
+      'color:rgba(255,255,255,0.35)',
+      'cursor:pointer',
+      'padding:2px',
+      'display:flex',
+      'align-items:center',
+      'transition:color 0.1s',
+    ].join(';');
+    minBtn.addEventListener('mouseenter', () => { minBtn.style.color = 'rgba(255,255,255,0.7)'; });
+    minBtn.addEventListener('mouseleave', () => { minBtn.style.color = 'rgba(255,255,255,0.35)'; });
+    minBtn.addEventListener('click', (e) => { e.stopPropagation(); this.minimize(); });
+
+    this.headerEl.appendChild(dragDots);
+    this.headerEl.appendChild(titleSpan);
+    this.headerEl.appendChild(minBtn);
+    this.headerEl.addEventListener('mousedown', this.onDragStart);
+    this.el.appendChild(this.headerEl);
 
     // Scrollable list
     this.listEl = document.createElement('div');
@@ -79,21 +127,53 @@ export class CellLegend {
     ].join(';');
     this.el.appendChild(this.listEl);
 
-    // Footer buttons
-    const footer = document.createElement('div');
-    footer.style.cssText = [
+    // Footer
+    this.footerEl = document.createElement('div');
+    this.footerEl.style.cssText = [
       'display:flex',
       'gap:4px',
       'padding:5px 8px',
       'border-top:1px solid rgba(255,255,255,0.08)',
       'flex-shrink:0',
     ].join(';');
-    const resetBtn = this.makeFooterBtn('초기화');
+    const resetBtn = this.makeFooterBtn('Reset');
     resetBtn.addEventListener('click', () => this.resetAll());
-    footer.appendChild(resetBtn);
-    this.el.appendChild(footer);
+    this.footerEl.appendChild(resetBtn);
+    this.el.appendChild(this.footerEl);
 
     container.appendChild(this.el);
+
+    // ─── Minimized icon button ───
+    this.minimizedEl = document.createElement('button');
+    this.minimizedEl.title = options.title ?? 'Cell Types';
+    this.minimizedEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <rect x="3" y="3" width="14" height="14" rx="2"/>
+      <line x1="7" y1="8" x2="13" y2="8"/>
+      <line x1="7" y1="12" x2="11" y2="12"/>
+    </svg>`;
+    this.minimizedEl.style.cssText = [
+      'position:absolute',
+      pos === 'right' ? 'right:8px' : 'left:44px',
+      'top:8px',
+      'z-index:10',
+      'width:32px',
+      'height:32px',
+      'display:none',
+      'align-items:center',
+      'justify-content:center',
+      'background:rgba(20,20,20,0.82)',
+      'border:1px solid rgba(255,255,255,0.12)',
+      'border-radius:6px',
+      'color:rgba(200,200,200,0.7)',
+      'cursor:pointer',
+      'backdrop-filter:blur(6px)',
+      'padding:0',
+      'transition:background 0.1s',
+    ].join(';');
+    this.minimizedEl.addEventListener('mouseenter', () => { this.minimizedEl.style.background = 'rgba(40,40,40,0.9)'; });
+    this.minimizedEl.addEventListener('mouseleave', () => { this.minimizedEl.style.background = 'rgba(20,20,20,0.82)'; });
+    this.minimizedEl.addEventListener('click', () => this.expand());
+    container.appendChild(this.minimizedEl);
   }
 
   // ─── Public ───
@@ -104,13 +184,74 @@ export class CellLegend {
     this.renderList();
   }
 
-  show(): void { this.el.style.display = 'flex'; }
-  hide(): void { this.el.style.display = 'none'; }
+  show(): void {
+    if (this._minimized) {
+      this.minimizedEl.style.display = 'flex';
+    } else {
+      this.el.style.display = 'flex';
+    }
+  }
+
+  hide(): void {
+    this.el.style.display = 'none';
+    this.minimizedEl.style.display = 'none';
+  }
+
+  minimize(): void {
+    this._minimized = true;
+    this.el.style.display = 'none';
+    this.minimizedEl.style.display = 'flex';
+  }
+
+  expand(): void {
+    this._minimized = false;
+    this.minimizedEl.style.display = 'none';
+    this.el.style.display = 'flex';
+  }
 
   destroy(): void {
     for (const t of this.clickTimers.values()) clearTimeout(t);
+    document.removeEventListener('mousemove', this.onDragMove);
+    document.removeEventListener('mouseup', this.onDragEnd);
     this.el.remove();
+    this.minimizedEl.remove();
   }
+
+  // ─── Drag ───
+
+  private onDragStart = (e: MouseEvent): void => {
+    // Don't drag if clicking the minimize button
+    if ((e.target as HTMLElement).closest('button')) return;
+    e.preventDefault();
+    this.isDragging = true;
+    const rect = this.el.getBoundingClientRect();
+    this.dragOffsetX = e.clientX - rect.left;
+    this.dragOffsetY = e.clientY - rect.top;
+    this.headerEl.style.cursor = 'grabbing';
+    document.addEventListener('mousemove', this.onDragMove);
+    document.addEventListener('mouseup', this.onDragEnd);
+  };
+
+  private onDragMove = (e: MouseEvent): void => {
+    if (!this.isDragging) return;
+    const parent = this.el.parentElement!;
+    const cr = parent.getBoundingClientRect();
+    const tw = this.el.offsetWidth;
+    const th = this.el.offsetHeight;
+    const x = Math.max(0, Math.min(cr.width - tw, e.clientX - cr.left - this.dragOffsetX));
+    const y = Math.max(0, Math.min(cr.height - th, e.clientY - cr.top - this.dragOffsetY));
+    this.el.style.left = `${x}px`;
+    this.el.style.top = `${y}px`;
+    this.el.style.right = 'auto';
+    this.el.style.transform = 'none';
+  };
+
+  private onDragEnd = (): void => {
+    this.isDragging = false;
+    this.headerEl.style.cursor = 'grab';
+    document.removeEventListener('mousemove', this.onDragMove);
+    document.removeEventListener('mouseup', this.onDragEnd);
+  };
 
   // ─── Rendering ───
 
