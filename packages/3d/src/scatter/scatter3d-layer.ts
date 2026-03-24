@@ -142,7 +142,7 @@ export class Scatter3DLayer implements RenderLayer {
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
-  setData(data: Scatter3DData, gl: WebGL2RenderingContext, flatten = false): void {
+  setData(data: Scatter3DData, gl: WebGL2RenderingContext, flatten = false, hiddenLabels?: Set<string>): void {
     if (!this.gl) this.gl = gl;
     this.freeGPU();
 
@@ -157,13 +157,14 @@ export class Scatter3DLayer implements RenderLayer {
       positions[i * 3 + 2] = flatten ? 0 : data.z[i]!;
     }
 
-    // Build color buffer (rgba)
+    // Build color buffer (rgba) — hidden labels get alpha=0
     const colors = new Float32Array(n * 4);
     if (data.colors && data.colors.length === n) {
       for (let i = 0; i < n; i++) {
+        const hidden = hiddenLabels && data.labels && hiddenLabels.has(data.labels[i]!);
         const c = hexToRGBA(data.colors[i]!);
         colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
-        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = c[3];
+        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = hidden ? 0 : c[3];
       }
     } else if (data.labels) {
       // Assign palette colors by label
@@ -171,9 +172,10 @@ export class Scatter3DLayer implements RenderLayer {
       for (let i = 0; i < n; i++) {
         const label = data.labels[i] ?? '';
         if (!labelMap.has(label)) labelMap.set(label, labelMap.size);
+        const hidden = hiddenLabels && hiddenLabels.has(label);
         const c = hexToRGBA(CLUSTER_PALETTE[labelMap.get(label)! % CLUSTER_PALETTE.length]!);
         colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
-        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = c[3];
+        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = hidden ? 0 : c[3];
       }
     } else {
       // Default: light blue
