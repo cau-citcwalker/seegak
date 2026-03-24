@@ -132,6 +132,44 @@ chartRef.current?.toggle3D();
 chartRef.current?.instance3D;   // Scatter3DViewCore | null
 ```
 
+## Color Mode
+
+Switch how points are colored at runtime. Requires data with both `labels` (for cell set mode) and `values` (for expression mode).
+
+```tsx
+const chartRef = useRef<ScatterChartHandle>(null);
+
+// Switch to expression colorscale
+chartRef.current?.instance?.setColorMode('expression');
+
+// Switch back to cluster label colors
+chartRef.current?.instance?.setColorMode('cell-set');
+
+// Check current mode
+chartRef.current?.instance?.colorMode; // 'cell-set' | 'expression'
+```
+
+| Mode | Description |
+|---|---|
+| `cell-set` | Colors by cluster label using the auto-assigned palette (default) |
+| `expression` | Colors by `values` (0–1) mapped through the `colorScale` |
+
+## Convex Hull Overlay
+
+Display convex hull polygons around each cluster as semi-transparent filled areas with colored borders. Useful for visually separating clusters.
+
+```tsx
+const chartRef = useRef<ScatterChartHandle>(null);
+
+// Show cluster hull polygons
+chartRef.current?.instance?.setShowHull(true);
+
+// Hide
+chartRef.current?.instance?.setShowHull(false);
+```
+
+The hulls are computed using Andrew's monotone chain algorithm (O(n log n)) and rendered on a lightweight 2D canvas overlay that follows camera pan/zoom. Performance impact is negligible.
+
 ## Toolbar Presets
 
 Control which tools appear in the toolbar:

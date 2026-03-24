@@ -13,6 +13,8 @@ import {
 } from '@seegak/core';
 import { BaseChart, type BaseChartOptions } from '../base-chart.js';
 import { CellLegend, type CellLegendOptions, type ClusterEntry } from '../renderer/cell-legend.js';
+import { HullOverlay, type HullData } from '../renderer/hull-layer.js';
+import { clusterHulls } from '../utils/convex-hull.js';
 
 // ─── Shaders ───
 
@@ -216,6 +218,10 @@ export class ScatterChart extends BaseChart {
   private focusedCluster: string | null = null;
   /** label → auto-assigned or provided color */
   private clusterColorMap = new Map<string, string>();
+  /** Current color mode */
+  private _colorMode: 'cell-set' | 'expression' = 'cell-set';
+  /** Hull overlay for cluster boundaries */
+  private hullOverlay: HullOverlay | null = null;
   /** Per-point cluster index, uploaded directly as UNSIGNED_SHORT vertex attribute */
   private _clusterIdx: Uint16Array | null = null;
   /** Palette RGBA (nSlots × 4 floats), uploaded to scatter_palette texture */
@@ -733,6 +739,80 @@ export class ScatterChart extends BaseChart {
     this.update(downsampled);
   }
 
+  // ─── Color Mode ──────────────────────────────────────────────────────────
+
+  /** Get current color mode */
+  get colorMode(): 'cell-set' | 'expression' { return this._colorMode; }
+
+  /**
+   * Switch coloring between cluster labels and expression values.
+   * Requires data to have both `labels` and `values` to be meaningful.
+   */
+  setColorMode(mode: 'cell-set' | 'expression'): void {
+    if (mode === this._colorMode) return;
+    this._colorMode = mode;
+
+    const shader = this.engine.getShader('scatter');
+    if (!shader) return;
+    shader.use();
+
+    if (mode === 'expression') {
+      // Switch to colorscale mode (u_colorMode = 0)
+      shader.setUniform('u_colorMode', { type: 'float', value: 0.0 });
+      // Re-upload values as the color data attribute if available
+      if (this.currentData?.values) {
+        this.engine.setBuffer('scatter_color', {
+          data: this.currentData.values,
+          usage: 'dynamic',
+          size: 1,
+        });
+        this.layer.colorDataGLType = this.engine.gl.FLOAT;
+      }
+    } else {
+      // Switch to palette mode (u_colorMode = 1)
+      shader.setUniform('u_colorMode', { type: 'float', value: 1.0 });
+      // Re-upload cluster indices if available
+      if (this._clusterIdx) {
+        this.engine.setBuffer('scatter_color', {
+          data: this._clusterIdx,
+          usage: 'dynamic',
+          size: 1,
+        });
+        this.layer.colorDataGLType = this.engine.gl.UNSIGNED_SHORT;
+      }
+    }
+
+    this.engine.requestRender();
+  }
+
+  // ─── Convex Hull ────────────────────────────────────────────────────────
+
+  /** Toggle convex hull overlay for cluster boundaries */
+  setShowHull(show: boolean): void {
+    if (!this.currentData?.labels) return;
+
+    if (show) {
+      if (!this.hullOverlay) {
+        this.hullOverlay = new HullOverlay(this.container);
+      }
+      // Compute hulls
+      const hulls = clusterHulls(this.currentData.x, this.currentData.y, this.currentData.labels);
+      this.hullOverlay.setData({ hulls, colors: this.clusterColorMap });
+      this.hullOverlay.setTransform((wx, wy) => {
+        const pr = this.engine.viewport.pixelRatio;
+        const screen = worldToScreen({ x: wx, y: wy }, this.engine.viewport, this.engine.camera);
+        return [screen.x / pr, screen.y / pr];
+      });
+      this.hullOverlay.show();
+    } else {
+      this.hullOverlay?.hide();
+    }
+  }
+
+  get showHull(): boolean {
+    return this.hullOverlay?.toggle !== undefined && this.hullOverlay !== null;
+  }
+
   // ─── Download ─────────────────────────────────────────────────────────────
 
   protected override getDownloadOptions(): DownloadOption[] {
@@ -775,6 +855,7 @@ export class ScatterChart extends BaseChart {
   }
 
   destroy(): void {
+    this.hullOverlay?.destroy();
     this.cellLegend?.destroy();
     this.tooltip?.destroy();
     super.destroy();
