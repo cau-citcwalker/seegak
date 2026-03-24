@@ -95,7 +95,10 @@ export abstract class BaseChart {
           tools: options.tools,
           actions: options.actions,
         },
-        (tool) => this.overlay.setTool(tool),
+        (tool) => {
+          this.overlay.setTool(tool);
+          this.hideTooltips();
+        },
         (action) => this.handleAction(action),
       );
       this.overlay.setTool(options.defaultTool ?? 'pan');
@@ -151,6 +154,15 @@ export abstract class BaseChart {
   /** Register a callback for box/lasso selection events */
   onSelect(cb: (event: SelectionEvent) => void): () => void {
     return this.overlay.onSelect(cb);
+  }
+
+  /** Hide any visible tooltips inside the container */
+  private hideTooltips(): void {
+    const tooltips = this.container.querySelectorAll<HTMLElement>('[data-seegak-tooltip]');
+    for (const el of tooltips) {
+      el.style.display = 'none';
+      el.style.opacity = '0';
+    }
   }
 
   /** Handle toolbar action button clicks */

@@ -41,6 +41,7 @@ export class Tooltip {
     };
 
     this.el = document.createElement('div');
+    this.el.dataset.seegakTooltip = '1';
     Object.assign(this.el.style, {
       position: 'absolute',
       display: 'none',
