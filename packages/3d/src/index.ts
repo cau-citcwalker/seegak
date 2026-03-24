@@ -1,5 +1,5 @@
 // Types
-export type { VolumeData, VolumeOptions, MeshData, MeshOptions } from './types.js';
+export type { VolumeData, VolumeOptions, MeshData, MeshOptions, Scatter3DData, Scatter3DOptions } from './types.js';
 
 // Math utilities
 export type { Mat4 } from './math/mat4.js';
@@ -25,3 +25,7 @@ export { VolumeView }  from './volume/volume-view.js';
 // Mesh rendering
 export { MeshLayer } from './mesh/mesh-layer.js';
 export { MeshView }  from './mesh/mesh-view.js';
+
+// 3D Scatter
+export { Scatter3DLayer } from './scatter/scatter3d-layer.js';
+export { Scatter3DView }  from './scatter/scatter3d-view.js';
