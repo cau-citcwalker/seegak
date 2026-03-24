@@ -26,8 +26,8 @@ export class ArcballCamera {
    * @param sensitivity  radians per pixel (default 0.005)
    */
   handleMouseDrag(dx: number, dy: number, sensitivity: number = 0.005): void {
-    this.rotY += dx * sensitivity;
-    this.rotX += dy * sensitivity;
+    this.rotY -= dx * sensitivity;
+    this.rotX -= dy * sensitivity;
     // Clamp pitch so the camera doesn't flip over
     this.rotX = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.rotX));
   }
