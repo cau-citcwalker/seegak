@@ -1,4 +1,5 @@
-import { BaseChart } from '@seegak/bio-charts';
+import { BaseChart, CellLegend } from '@seegak/bio-charts';
+import type { ClusterEntry } from '@seegak/bio-charts';
 import type { Scatter3DData, Scatter3DOptions } from '../types.js';
 import { Scatter3DLayer } from './scatter3d-layer.js';
 import { Scatter3DToolbar } from './scatter3d-toolbar.js';
@@ -17,6 +18,8 @@ export class Scatter3DView extends BaseChart {
   readonly toolbar3D: Scatter3DToolbar;
   private currentData: Scatter3DData | null = null;
   private _flatten: boolean;
+  private cellLegend: CellLegend | null = null;
+  private hiddenClusters = new Set<string>();
 
   // Interaction state
   private pointerDown = false;
@@ -64,6 +67,7 @@ export class Scatter3DView extends BaseChart {
 
   setData(data: Scatter3DData): void {
     this.currentData = data;
+    this.hiddenClusters.clear();
     this.layer.setData(data, this.engine.gl, this._flatten);
 
     // Auto-fit camera to data bounds
@@ -79,6 +83,60 @@ export class Scatter3DView extends BaseChart {
     this.arcball.setTarget([cx, cy, cz]);
     this.arcball.setDistance(diag * 1.2);
     this.updateMatrices();
+    this.engine.requestRender();
+
+    // Build cluster legend
+    this.buildLegend(data);
+  }
+
+  private buildLegend(data: Scatter3DData): void {
+    if (!data.labels) {
+      this.cellLegend?.hide();
+      return;
+    }
+
+    const labelColors = this.layer.getLabelColors(data);
+    const counts = new Map<string, number>();
+    for (const l of data.labels) counts.set(l, (counts.get(l) ?? 0) + 1);
+
+    const entries: ClusterEntry[] = labelColors.map(({ label, color }) => ({
+      label,
+      color,
+      count: counts.get(label) ?? 0,
+      visible: !this.hiddenClusters.has(label),
+    })).sort((a, b) => b.count - a.count);
+
+    if (!this.cellLegend) {
+      this.cellLegend = new CellLegend(
+        this.container,
+        { position: 'right', title: 'Cell Types' },
+        (label: string, visible: boolean) => {
+          if (visible) this.hiddenClusters.delete(label);
+          else this.hiddenClusters.add(label);
+          this.refreshWithHidden();
+        },
+        (focusLabel: string | null) => {
+          if (focusLabel) {
+            // Focus: hide all except this one
+            for (const e of entries) {
+              if (e.label !== focusLabel) this.hiddenClusters.add(e.label);
+              else this.hiddenClusters.delete(e.label);
+            }
+          } else {
+            this.hiddenClusters.clear();
+          }
+          this.refreshWithHidden();
+        },
+      );
+    }
+
+    this.cellLegend.setEntries(entries);
+    this.cellLegend.show();
+  }
+
+  private refreshWithHidden(): void {
+    if (!this.currentData) return;
+    this.layer.setData(this.currentData, this.engine.gl, this._flatten, this.hiddenClusters);
     this.engine.requestRender();
   }
 
@@ -98,7 +156,7 @@ export class Scatter3DView extends BaseChart {
     this._flatten = flatten;
     this.toolbar3D.setFlatten(flatten);
     if (this.currentData) {
-      this.layer.setData(this.currentData, this.engine.gl, flatten);
+      this.layer.setData(this.currentData, this.engine.gl, flatten, this.hiddenClusters);
       this.engine.requestRender();
     }
   }
@@ -266,6 +324,7 @@ export class Scatter3DView extends BaseChart {
   }
 
   override destroy(): void {
+    this.cellLegend?.destroy();
     this.toolbar3D.destroy();
     this.detachInteraction();
     super.destroy();

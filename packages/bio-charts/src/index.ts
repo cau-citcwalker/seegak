@@ -28,4 +28,5 @@ export { ViolinPlotChart } from './charts/violin.js';
 export type { ViolinPlotData, ViolinPlotOptions, ViolinPlotGroup } from './charts/violin.js';
 
 // Renderer helpers
+export { CellLegend } from './renderer/cell-legend.js';
 export type { ClusterEntry, CellLegendOptions } from './renderer/cell-legend.js';

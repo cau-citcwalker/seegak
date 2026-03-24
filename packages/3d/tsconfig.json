@@ -6,7 +6,7 @@
     "composite": true,
     "paths": {
       "@seegak/core":       ["../core/src/index.ts"],
-      "@seegak/bio-charts": ["../bio-charts/src/base-chart.ts"]
+      "@seegak/bio-charts": ["../bio-charts/src/index.ts"]
     }
   },
   "include": ["src"],
