@@ -1,29 +1,29 @@
 # BarChart
 
-범주형 데이터의 수치를 막대로 비교합니다. 단순 막대와 스택 막대 차트를 지원합니다.
+Compares categorical values using bars. Supports both simple and stacked bar charts.
 
 ## Props
 
-| Prop | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `data` | `BarChartData` | - | 차트 데이터 |
-| `barWidth` | `number` | - | 막대 너비 |
-| `defaultColor` | `string` | - | 기본 막대 색상 (hex) |
-| `gap` | `number` | - | 막대 간 간격 |
-| `style` | `CSSProperties` | - | 컨테이너 스타일 |
-| `className` | `string` | - | 컨테이너 CSS 클래스 |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `data` | `BarChartData` | - | Chart data |
+| `barWidth` | `number` | - | Bar width |
+| `defaultColor` | `string` | - | Default bar color (hex) |
+| `gap` | `number` | - | Gap between bars |
+| `style` | `CSSProperties` | - | Container style |
+| `className` | `string` | - | Container CSS class |
 
-## 데이터 타입
+## Data Types
 
 ```typescript
-// 단순 막대
+// Simple bars
 interface BarGroup {
   label: string;
   value: number;
-  color?: string;  // 개별 색상 (hex)
+  color?: string;  // Per-bar color (hex)
 }
 
-// 스택 막대
+// Stacked bars
 interface StackedBarGroup {
   label: string;
   segments: Array<{
@@ -39,11 +39,11 @@ interface BarChartData {
   xLabel?: string;
   yLabel?: string;
   orientation?: 'vertical' | 'horizontal';
-  stacked?: boolean;  // true이면 StackedBarGroup으로 해석
+  stacked?: boolean;  // When true, groups are interpreted as StackedBarGroup
 }
 ```
 
-## 예시: 세포 수 비교
+## Example: Cell Count Comparison
 
 ```tsx
 import { BarChart } from '@seegak/react';
@@ -70,15 +70,15 @@ function CellCounts() {
 }
 ```
 
-## 예시: 단일 색상
+## Example: Uniform Color
 
-모든 막대에 같은 색상을 적용하려면 `defaultColor`를 사용합니다.
+To apply the same color to all bars, use `defaultColor`.
 
 ```tsx
 <BarChart data={data} defaultColor="#3b82f6" />
 ```
 
-## 예시: 스택 막대 차트
+## Example: Stacked Bar Chart
 
 ```tsx
 const data = {

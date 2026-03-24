@@ -1,22 +1,22 @@
 # BoxPlotChart
 
-그룹별 데이터 분포를 사분위수, 중앙값, 이상치로 시각화합니다.
-유전자 발현량의 세포 타입별 비교 등에 적합합니다.
+Visualizes data distribution by group using quartiles, median, and outliers.
+Suitable for comparing gene expression across cell types.
 
 ## Props
 
-| Prop | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `data` | `BoxPlotData` | - | 차트 데이터 |
-| `boxWidth` | `number` | - | 박스 너비 |
-| `whiskerWidth` | `number` | - | 수염 너비 |
-| `showOutliers` | `boolean` | `true` | 이상치 표시 여부 |
-| `outlierSize` | `number` | - | 이상치 점 크기 |
-| `defaultColor` | `string` | - | 기본 색상 (hex) |
-| `style` | `CSSProperties` | - | 컨테이너 스타일 |
-| `className` | `string` | - | 컨테이너 CSS 클래스 |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `data` | `BoxPlotData` | - | Chart data |
+| `boxWidth` | `number` | - | Box width |
+| `whiskerWidth` | `number` | - | Whisker width |
+| `showOutliers` | `boolean` | `true` | Whether to show outliers |
+| `outlierSize` | `number` | - | Outlier point size |
+| `defaultColor` | `string` | - | Default color (hex) |
+| `style` | `CSSProperties` | - | Container style |
+| `className` | `string` | - | Container CSS class |
 
-## 데이터 타입
+## Data Types
 
 ```typescript
 interface BoxPlotData {
@@ -24,14 +24,14 @@ interface BoxPlotData {
   title?: string;
   xLabel?: string;
   yLabel?: string;
-  orientation?: 'vertical' | 'horizontal';  // 기본값: 'vertical'
+  orientation?: 'vertical' | 'horizontal';  // Default: 'vertical'
 }
 
 interface BoxPlotGroup {
-  label: string;       // 그룹 이름
-  values: number[];    // raw 데이터 (통계량 자동 계산)
-  color?: string;      // 그룹별 색상 (hex)
-  stats?: BoxStats;    // 미리 계산된 통계량 (선택)
+  label: string;       // Group name
+  values: number[];    // Raw data (statistics computed automatically)
+  color?: string;      // Per-group color (hex)
+  stats?: BoxStats;    // Pre-computed statistics (optional)
 }
 
 interface BoxStats {
@@ -44,7 +44,7 @@ interface BoxStats {
 }
 ```
 
-## 예시: 유전자 발현 분포 비교
+## Example: Gene Expression Distribution
 
 ```tsx
 import { BoxPlotChart } from '@seegak/react';
@@ -75,16 +75,16 @@ function ExpressionDistribution() {
 }
 ```
 
-## 예시: 사전 계산된 통계량 사용
+## Example: Pre-computed Statistics
 
-서버에서 이미 통계량을 계산한 경우 `stats`를 직접 전달하여 클라이언트 계산을 생략할 수 있습니다.
+If statistics are already computed on the server, pass `stats` directly to skip client-side computation.
 
 ```tsx
 const data = {
   groups: [
     {
       label: 'Group A',
-      values: [],  // stats가 있으면 values는 무시
+      values: [],  // Ignored when stats is provided
       stats: {
         min: 0.5,
         q1: 2.1,
@@ -98,7 +98,7 @@ const data = {
 };
 ```
 
-## 예시: 수평 방향
+## Example: Horizontal Orientation
 
 ```tsx
 const data = {

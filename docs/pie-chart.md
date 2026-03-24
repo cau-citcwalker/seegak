@@ -1,34 +1,34 @@
 # PieChart
 
-비율과 구성을 원형 차트로 시각화합니다. 도넛 차트도 지원합니다.
+Visualizes proportions and composition as a pie chart. Also supports donut charts.
 
 ## Props
 
-| Prop | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `data` | `PieChartData` | - | 차트 데이터 |
-| `showLabels` | `boolean` | `false` | 라벨 표시 여부 |
-| `showPercentage` | `boolean` | `false` | 퍼센트 표시 여부 |
-| `style` | `CSSProperties` | - | 컨테이너 스타일 |
-| `className` | `string` | - | 컨테이너 CSS 클래스 |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `data` | `PieChartData` | - | Chart data |
+| `showLabels` | `boolean` | `false` | Whether to show labels |
+| `showPercentage` | `boolean` | `false` | Whether to show percentages |
+| `style` | `CSSProperties` | - | Container style |
+| `className` | `string` | - | Container CSS class |
 
-## 데이터 타입
+## Data Types
 
 ```typescript
 interface PieSlice {
   label: string;
   value: number;
-  color?: string;  // hex 색상
+  color?: string;  // Hex color
 }
 
 interface PieChartData {
   slices: PieSlice[];
   title?: string;
-  innerRadius?: number;  // 도넛 차트 (0 = 원형, 0.5 = 도넛)
+  innerRadius?: number;  // Donut chart (0 = pie, 0.5 = donut)
 }
 ```
 
-## 예시: 세포 타입 비율
+## Example: Cell Type Proportions
 
 ```tsx
 import { PieChart } from '@seegak/react';
@@ -52,14 +52,14 @@ function CellTypeProportions() {
 }
 ```
 
-## 예시: 도넛 차트
+## Example: Donut Chart
 
-`innerRadius`로 도넛 차트를 만들 수 있습니다. 값은 0~1 범위 (외곽 반지름 대비 비율).
+Use `innerRadius` to create a donut chart. Value is in the 0–1 range (ratio relative to outer radius).
 
 ```tsx
 const data = {
   slices: [...],
-  innerRadius: 0.5,  // 안쪽 반지름 = 바깥 반지름의 50%
+  innerRadius: 0.5,  // Inner radius = 50% of outer radius
   title: 'Sample Composition',
 };
 

@@ -1,26 +1,26 @@
-# 색상 스케일 (Color Scales)
+# Color Scales
 
-연속값을 색상으로 매핑하는 색상 스케일입니다.
-ScatterChart의 `values`와 FeaturePlotChart의 `expression`에 사용됩니다.
+Color scales map continuous values to colors.
+Used with ScatterChart's `values` and FeaturePlotChart's `expression`.
 
-## 내장 스케일
+## Built-in Scales
 
 ```tsx
 import { VIRIDIS, PLASMA, INFERNO } from '@seegak/react';
 ```
 
-| 스케일 | 범위 | 특성 |
-|--------|------|------|
-| **VIRIDIS** | 진한 보라 → 청록 → 노랑 | 밝은 배경에 적합. 인지적 균일성 |
-| **PLASMA** | 진한 파랑 → 보라 → 주황 → 노랑 | 밝은 배경에 적합. 높은 대비 |
-| **INFERNO** | 검정 → 보라 → 주황 → 노랑 | 밝은 배경에 적합 |
+| Scale | Range | Characteristics |
+|-------|-------|----------------|
+| **VIRIDIS** | Dark purple → Teal → Yellow | Suitable for light backgrounds. Perceptually uniform |
+| **PLASMA** | Dark blue → Purple → Orange → Yellow | Suitable for light backgrounds. High contrast |
+| **INFERNO** | Black → Purple → Orange → Yellow | Suitable for light backgrounds |
 
-> **참고**: 내장 스케일은 낮은 값이 어두운 색으로 시작합니다.
-> 어두운 배경에서 사용할 경우 커스텀 스케일을 권장합니다.
+> **Note**: Built-in scales start with dark colors at low values.
+> For dark backgrounds, consider using a custom scale.
 
-## 커스텀 색상 스케일
+## Custom Color Scales
 
-`ColorScale`은 `stops` 배열로 정의합니다. 각 stop은 위치(0~1)와 RGBA 색상(0~1 범위)으로 구성됩니다.
+A `ColorScale` is defined as an array of `stops`. Each stop consists of a position (0–1) and an RGBA color (0–1 range).
 
 ```typescript
 import type { ColorScale } from '@seegak/core';
@@ -34,68 +34,68 @@ const MY_SCALE: ColorScale = {
 };
 ```
 
-### 규칙
+### Rules
 
-- `position`은 0.0 ~ 1.0 범위
-- `color`의 각 채널 (r, g, b, a)은 0.0 ~ 1.0 범위
-- stops는 position 순서대로 정렬
-- 최소 1개 이상의 stop 필요
-- stop 사이는 선형 보간(lerp)
+- `position` must be in the 0.0–1.0 range
+- Each channel of `color` (r, g, b, a) must be in the 0.0–1.0 range
+- Stops must be sorted by position in ascending order
+- At least one stop is required
+- Values between stops are linearly interpolated (lerp)
 
-## 예시: 어두운 배경용 스케일
+## Example: Scale for Dark Backgrounds
 
 ```tsx
 const DARK_BG_SCALE: ColorScale = {
   stops: [
-    { position: 0.0, color: { r: 0.6, g: 0.6, b: 0.65, a: 1 } },  // 밝은 회색
-    { position: 0.3, color: { r: 0.2, g: 0.4, b: 0.8, a: 1 } },   // 파랑
-    { position: 0.6, color: { r: 0.9, g: 0.2, b: 0.2, a: 1 } },   // 빨강
-    { position: 1.0, color: { r: 1.0, g: 0.95, b: 0.2, a: 1 } },  // 노랑
+    { position: 0.0, color: { r: 0.6, g: 0.6, b: 0.65, a: 1 } },  // Light gray
+    { position: 0.3, color: { r: 0.2, g: 0.4, b: 0.8, a: 1 } },   // Blue
+    { position: 0.6, color: { r: 0.9, g: 0.2, b: 0.2, a: 1 } },   // Red
+    { position: 1.0, color: { r: 1.0, g: 0.95, b: 0.2, a: 1 } },  // Yellow
   ],
 };
 
 <FeaturePlotChart data={data} colorScale={DARK_BG_SCALE} />
 ```
 
-## 예시: 파랑-흰-빨강 (발현 차이 비교용)
+## Example: Blue-White-Red (for Differential Expression)
 
 ```tsx
 const BLUE_WHITE_RED: ColorScale = {
   stops: [
-    { position: 0.0, color: { r: 0.0, g: 0.0, b: 1.0, a: 1 } },   // 파랑 (하향 조절)
-    { position: 0.5, color: { r: 0.95, g: 0.95, b: 0.95, a: 1 } }, // 흰색 (변화 없음)
-    { position: 1.0, color: { r: 1.0, g: 0.0, b: 0.0, a: 1 } },   // 빨강 (상향 조절)
+    { position: 0.0, color: { r: 0.0, g: 0.0, b: 1.0, a: 1 } },   // Blue (downregulated)
+    { position: 0.5, color: { r: 0.95, g: 0.95, b: 0.95, a: 1 } }, // White (no change)
+    { position: 1.0, color: { r: 1.0, g: 0.0, b: 0.0, a: 1 } },   // Red (upregulated)
   ],
 };
 ```
 
-## 예시: 2색 그라데이션
+## Example: Two-color Gradient
 
 ```tsx
 const SIMPLE_GRADIENT: ColorScale = {
   stops: [
-    { position: 0.0, color: { r: 0.9, g: 0.9, b: 0.9, a: 1 } },  // 연한 회색
-    { position: 1.0, color: { r: 0.8, g: 0.0, b: 0.0, a: 1 } },  // 진한 빨강
+    { position: 0.0, color: { r: 0.9, g: 0.9, b: 0.9, a: 1 } },  // Light gray
+    { position: 1.0, color: { r: 0.8, g: 0.0, b: 0.0, a: 1 } },  // Dark red
   ],
 };
 ```
 
-## 유틸리티 함수
+## Utility Functions
 
-`@seegak/core`에서 색상 스케일 관련 유틸리티를 사용할 수 있습니다:
+Color scale utilities are available from `@seegak/core`:
 
 ```tsx
 import { sampleColorScale, colorScaleToTexture, hexToVec4, vec4ToHex } from '@seegak/core';
 
-// 특정 위치의 색상 샘플링
+// Sample color at a specific position
 const color = sampleColorScale(VIRIDIS, 0.5);
 // → { r: 0.127, g: 0.566, b: 0.551, a: 1 }
 
-// hex → Vec4 변환
+// hex → Vec4 conversion
 const vec4 = hexToVec4('#e41a1c');
 // → { r: 0.894, g: 0.102, b: 0.110, a: 1 }
 
-// Vec4 → hex 변환
+// Vec4 → hex conversion
 const hex = vec4ToHex({ r: 0.894, g: 0.102, b: 0.110, a: 1 });
 // → '#e41a1c'
 ```

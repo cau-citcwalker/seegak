@@ -1,19 +1,19 @@
-# 시작하기
+# Getting Started
 
-## 설치
+## Installation
 
 ```bash
 npm install @seegak/react
 ```
 
-`@seegak/react`를 설치하면 `@seegak/core`, `@seegak/bio-charts`, `@seegak/human-body-map`이 함께 설치됩니다.
+Installing `@seegak/react` will also install `@seegak/core`, `@seegak/bio-charts`, and `@seegak/human-body-map` as dependencies.
 
-### 요구 사항
+### Requirements
 
-- React 18 이상
-- WebGL2를 지원하는 브라우저 (Chrome, Firefox, Edge, Safari 15+)
+- React 18+
+- A browser with WebGL2 support (Chrome, Firefox, Edge, Safari 15+)
 
-## 기본 사용법
+## Basic Usage
 
 ```tsx
 import { ScatterChart } from '@seegak/react';
@@ -33,41 +33,41 @@ function MyChart() {
 }
 ```
 
-## 중요: 컨테이너 크기 지정
+## Important: Container Sizing
 
-모든 차트 컴포넌트는 부모 컨테이너의 100%를 채웁니다.
-**반드시 부모 요소에 명시적인 너비/높이를 지정**해야 합니다.
+All chart components fill 100% of their parent container.
+**You must set an explicit width/height on the parent element.**
 
 ```tsx
-// OK - 명시적 크기
+// OK - Explicit dimensions
 <div style={{ width: 600, height: 400 }}>
   <ScatterChart data={data} />
 </div>
 
-// OK - CSS grid/flex에서 크기가 결정되는 경우
+// OK - Dimensions determined by CSS grid/flex
 <div style={{ display: 'grid', gridTemplateColumns: '1fr', height: 500 }}>
   <ScatterChart data={data} />
 </div>
 
-// NG - 크기가 0이 되어 차트가 보이지 않음
+// NG - Dimensions will be 0, chart won't render
 <div>
   <ScatterChart data={data} />
 </div>
 ```
 
-> **Tip**: `overflow: hidden`을 컨테이너에 설정하면 ResizeObserver 피드백 루프를 방지할 수 있습니다.
+> **Tip**: Setting `overflow: hidden` on the container can prevent ResizeObserver feedback loops.
 
-## 데이터 형식
+## Data Format
 
-Seegak의 차트는 **Float32Array**를 사용합니다.
-일반 배열도 전달할 수 있지만, 대량 데이터에서는 Float32Array가 메모리와 성능 면에서 유리합니다.
+Seegak charts use **Float32Array** for coordinate data.
+Plain arrays can also be passed, but Float32Array is recommended for large datasets due to better memory efficiency and performance.
 
 ```tsx
-// 일반 배열 → Float32Array 변환
+// Convert plain array to Float32Array
 const rawX = [1.0, 2.5, 3.2, 4.8];
 const x = new Float32Array(rawX);
 
-// API 응답에서 직접 생성
+// Create directly from API response
 const response = await fetch('/api/umap-data');
 const json = await response.json();
 const data = {
@@ -77,16 +77,16 @@ const data = {
 };
 ```
 
-## 패키지 구조
+## Package Structure
 
 ```
-@seegak/react          ← React 컴포넌트 (이것만 import하면 됨)
-  ├── @seegak/bio-charts   ← 차트 로직 (ScatterChart, BoxPlot 등)
-  ├── @seegak/human-body-map ← 인체 맵
-  └── @seegak/core         ← WebGL2 렌더링 엔진
+@seegak/react          ← React components (just import from here)
+  ├── @seegak/bio-charts   ← Chart logic (ScatterChart, BoxPlot, etc.)
+  ├── @seegak/human-body-map ← Human body map
+  └── @seegak/core         ← WebGL2 rendering engine
 ```
 
-대부분의 경우 `@seegak/react`에서 모든 것을 import할 수 있습니다:
+In most cases, you can import everything from `@seegak/react`:
 
 ```tsx
 import {
@@ -96,7 +96,7 @@ import {
   BarChart,
   PieChart,
   HumanBodyMap,
-  VIRIDIS, PLASMA, INFERNO,  // 내장 색상 스케일
+  VIRIDIS, PLASMA, INFERNO,  // Built-in color scales
 } from '@seegak/react';
 
 import type {
@@ -109,7 +109,7 @@ import type {
 } from '@seegak/react';
 ```
 
-커스텀 색상 스케일 등 core 유틸리티가 필요한 경우:
+If you need core utilities such as custom color scales:
 
 ```tsx
 import type { ColorScale, Vec4 } from '@seegak/core';
