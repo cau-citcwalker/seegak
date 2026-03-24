@@ -54,6 +54,10 @@ export interface PieChartData {
 export interface PieChartOptions extends BaseChartOptions {
   showLabels?: boolean;
   showPercentage?: boolean;
+  /** Slices below this percentage are grouped into "Others". Default: 2 */
+  groupThreshold?: number;
+  /** Labels are hidden for slices below this percentage. Default: 3 */
+  labelThreshold?: number;
 }
 
 // ─── Render Layer ───
@@ -100,7 +104,7 @@ const DEFAULT_COLORS = [
 
 export class PieChart extends BaseChart {
   private layer: PieLayer;
-  private opts: Required<Pick<PieChartOptions, 'showLabels' | 'showPercentage'>>;
+  private opts: Required<Pick<PieChartOptions, 'showLabels' | 'showPercentage' | 'groupThreshold' | 'labelThreshold'>>;
   private currentData: PieChartData | null = null;
   private sliceAngles: Array<[number, number]> = [];
   private tooltip: Tooltip;
@@ -111,6 +115,8 @@ export class PieChart extends BaseChart {
     this.opts = {
       showLabels: options.showLabels ?? true,
       showPercentage: options.showPercentage ?? true,
+      groupThreshold: options.groupThreshold ?? 2,
+      labelThreshold: options.labelThreshold ?? 3,
     };
 
     this.engine.createShader('pie', { vertex: PIE_VERT, fragment: PIE_FRAG });
@@ -157,12 +163,33 @@ export class PieChart extends BaseChart {
   }
 
   update(data: PieChartData): void {
-    this.currentData = data;
+    // Group small slices into "Others"
+    const rawTotal = data.slices.reduce((s, d) => s + d.value, 0);
+    const threshold = this.opts.groupThreshold / 100;
+    const grouped: PieSlice[] = [];
+    let othersValue = 0;
+
+    // Sort by value descending so "Others" is last
+    const sorted = [...data.slices].sort((a, b) => b.value - a.value);
+    for (const slice of sorted) {
+      if (rawTotal > 0 && slice.value / rawTotal < threshold) {
+        othersValue += slice.value;
+      } else {
+        grouped.push(slice);
+      }
+    }
+    if (othersValue > 0) {
+      grouped.push({ label: 'Others', value: othersValue, color: '#6b7280' });
+    }
+
+    const processedData: PieChartData = { ...data, slices: grouped };
+    this.currentData = processedData;
+
     // Build sliceAngles for hit testing
-    const total = data.slices.reduce((s, d) => s + d.value, 0);
+    const total = processedData.slices.reduce((s, d) => s + d.value, 0);
     this.sliceAngles = [];
     let angle = -Math.PI / 2;
-    for (const slice of data.slices) {
+    for (const slice of processedData.slices) {
       const sliceAngle = (slice.value / total) * Math.PI * 2;
       this.sliceAngles.push([angle, angle + sliceAngle]);
       angle += sliceAngle;
@@ -172,7 +199,7 @@ export class PieChart extends BaseChart {
     const cx = area.x + area.width / 2;
     const cy = area.y + area.height / 2;
     const radius = Math.min(area.width, area.height) / 2 * 0.85;
-    const innerRadius = radius * (data.innerRadius ?? 0);
+    const innerRadius = radius * (processedData.innerRadius ?? 0);
 
     if (total === 0) return;
 
@@ -191,8 +218,8 @@ export class PieChart extends BaseChart {
 
     let renderAngle = -Math.PI / 2; // start at top
 
-    for (let i = 0; i < data.slices.length; i++) {
-      const slice = data.slices[i];
+    for (let i = 0; i < processedData.slices.length; i++) {
+      const slice = processedData.slices[i];
       const sliceAngle = (slice.value / total) * Math.PI * 2;
       const color = hexToVec4(slice.color ?? DEFAULT_COLORS[i % DEFAULT_COLORS.length]);
 
@@ -239,33 +266,38 @@ export class PieChart extends BaseChart {
     if (this.opts.showLabels) {
       let labelAngle = -Math.PI / 2;
       const labelRadius = radius * 1.15;
+      const labelThreshold = this.opts.labelThreshold / 100;
 
-      for (let i = 0; i < data.slices.length; i++) {
-        const slice = data.slices[i];
+      for (let i = 0; i < processedData.slices.length; i++) {
+        const slice = processedData.slices[i];
         const sliceAngle = (slice.value / total) * Math.PI * 2;
         const midAngle = labelAngle + sliceAngle / 2;
+        const pct = slice.value / total;
 
-        const lx = cx + Math.cos(midAngle) * labelRadius;
-        const ly = cy + Math.sin(midAngle) * labelRadius;
+        // Skip label for slices below labelThreshold
+        if (pct >= labelThreshold) {
+          const lx = cx + Math.cos(midAngle) * labelRadius;
+          const ly = cy + Math.sin(midAngle) * labelRadius;
 
-        let label = slice.label;
-        if (this.opts.showPercentage) {
-          label += ` (${((slice.value / total) * 100).toFixed(1)}%)`;
+          let label = slice.label;
+          if (this.opts.showPercentage) {
+            label += ` (${(pct * 100).toFixed(1)}%)`;
+          }
+
+          const align: CanvasTextAlign = Math.cos(midAngle) > 0.1 ? 'left' : Math.cos(midAngle) < -0.1 ? 'right' : 'center';
+
+          this.text.add(label, lx, ly, {
+            color: { r: 0.9, g: 0.9, b: 0.9, a: 1 },
+            fontSize: 11, align, baseline: 'middle',
+          });
         }
-
-        const align: CanvasTextAlign = Math.cos(midAngle) > 0.1 ? 'left' : Math.cos(midAngle) < -0.1 ? 'right' : 'center';
-
-        this.text.add(label, lx, ly, {
-          color: { r: 0.9, g: 0.9, b: 0.9, a: 1 },
-          fontSize: 11, align, baseline: 'middle',
-        });
 
         labelAngle += sliceAngle;
       }
     }
 
-    if (data.title) {
-      this.text.add(data.title, area.x + area.width / 2, 10, {
+    if (processedData.title) {
+      this.text.add(processedData.title, area.x + area.width / 2, 10, {
         color: { r: 1, g: 1, b: 1, a: 1 }, fontSize: 14, align: 'center', baseline: 'top',
       });
     }
