@@ -180,8 +180,8 @@ export class HeatmapChart extends BaseChart {
     this.tooltip?.show(sx, sy, {
       title: `${genes[gi]}`,
       rows: [
-        { label: '세포/클러스터', value: rowLabel ?? '' },
-        { label: '발현량', value: expression[idx]!.toFixed(4) },
+        { label: 'Cell / Cluster', value: rowLabel ?? '' },
+        { label: 'Expression', value: expression[idx]!.toFixed(4) },
       ],
     });
   }
@@ -380,7 +380,7 @@ export class HeatmapChart extends BaseChart {
 
       // Color bar vertical label
       const midCB = CB_Y + CB_H / 2;
-      const normLabel = this.opts.normalize === 'gene' ? '발현 (유전자별 정규화)' : '발현량';
+      const normLabel = this.opts.normalize === 'gene' ? 'Expression (per-gene normalized)' : 'Expression';
       this.text.add(normLabel, CB_X - 4, midCB, {
         color: axisColor, fontSize: 10, align: 'center', baseline: 'bottom',
         rotation: -Math.PI / 2,

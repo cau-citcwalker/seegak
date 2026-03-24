@@ -226,12 +226,12 @@ export class BoxPlotChart extends BaseChart {
     this.tooltip.show(sx, sy, {
       title: group.label,
       rows: [
-        { label: '최대', value: stats.max.toFixed(4) },
-        { label: 'Q3',   value: stats.q3.toFixed(4) },
-        { label: '중앙값', value: stats.median.toFixed(4) },
-        { label: 'Q1',   value: stats.q1.toFixed(4) },
-        { label: '최소', value: stats.min.toFixed(4) },
-        { label: '이상치', value: `${stats.outliers.length}개` },
+        { label: 'Max',      value: stats.max.toFixed(4) },
+        { label: 'Q3',      value: stats.q3.toFixed(4) },
+        { label: 'Median',  value: stats.median.toFixed(4) },
+        { label: 'Q1',      value: stats.q1.toFixed(4) },
+        { label: 'Min',     value: stats.min.toFixed(4) },
+        { label: 'Outliers', value: String(stats.outliers.length) },
         { label: 'N',    value: group.values?.length ?? 'N/A' },
       ],
     });

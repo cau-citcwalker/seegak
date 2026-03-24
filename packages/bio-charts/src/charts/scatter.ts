@@ -369,9 +369,9 @@ export class ScatterChart extends BaseChart {
       { label: 'UMAP 1', value: d.x.toFixed(4) },
       { label: 'UMAP 2', value: d.y.toFixed(4) },
     ];
-    if (d.value !== undefined) rows.push({ label: '값', value: d.value.toFixed(4) });
-    if (d.label) rows.push({ label: '클러스터', value: d.label, color: d.color });
-    return { title: d.label ?? `포인트 #${d.index}`, rows };
+    if (d.value !== undefined) rows.push({ label: 'Value', value: d.value.toFixed(4) });
+    if (d.label) rows.push({ label: 'Cluster', value: d.label, color: d.color });
+    return { title: d.label ?? `Point #${d.index}`, rows };
   }
 
   // ─── Hit Testing ───
