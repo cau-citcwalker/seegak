@@ -177,18 +177,22 @@ export class CellLegend {
     ].join(';');
     this.minimizedEl.addEventListener('mouseenter', () => { this.minimizedEl.style.background = 'rgba(40,40,40,0.9)'; });
     this.minimizedEl.addEventListener('mouseleave', () => { this.minimizedEl.style.background = 'rgba(20,20,20,0.82)'; });
-    // Click to expand, but only if not dragging
-    let minDragMoved = false;
+    // Click to expand, but only if not dragging (5px threshold)
     this.minimizedEl.addEventListener('mousedown', (e: MouseEvent) => {
-      minDragMoved = false;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
       this.minDragging = true;
       const rect = this.minimizedEl.getBoundingClientRect();
       this.minDragOffsetX = e.clientX - rect.left;
       this.minDragOffsetY = e.clientY - rect.top;
-      this.minimizedEl.style.cursor = 'grabbing';
       const onMove = (ev: MouseEvent) => {
         if (!this.minDragging) return;
-        minDragMoved = true;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!moved && dx * dx + dy * dy < 25) return; // 5px threshold
+        moved = true;
+        this.minimizedEl.style.cursor = 'grabbing';
         const parent = this.minimizedEl.parentElement!;
         const cr = parent.getBoundingClientRect();
         const x = Math.max(0, Math.min(cr.width - 32, ev.clientX - cr.left - this.minDragOffsetX));
@@ -202,7 +206,7 @@ export class CellLegend {
         this.minimizedEl.style.cursor = 'grab';
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup', onUp);
-        if (!minDragMoved) this.expand();
+        if (!moved) this.expand();
       };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
