@@ -137,22 +137,35 @@ chartRef.current?.instance3D;   // Scatter3DViewCore | null
 Control which tools appear in the toolbar:
 
 ```tsx
-// All tools + PNG/SVG export
+// All tools + download button
 <ScatterChart data={data} toolbarPreset="full" />
 
-// Pan, box-select, lasso, eraser + PNG export (default)
+// Pan, box-select, lasso, eraser + download button (default)
 <ScatterChart data={data} toolbarPreset="standard" />
 
-// Pan only
+// Pan only, no download
 <ScatterChart data={data} toolbarPreset="minimal" />
 
 // Custom selection
-<ScatterChart data={data} tools={['pan', 'lasso']} actions={['save-png']} />
+<ScatterChart data={data} tools={['pan', 'lasso']} actions={['download']} />
 ```
 
-## Image Export
+## Download / Export
 
-All charts have built-in export methods accessible via ref:
+Clicking the **download button** (↓) in the toolbar opens a modal with all available export formats:
+
+| Format | Description |
+|---|---|
+| **PNG Image** | High-resolution raster image (2x scale) |
+| **SVG Image** | Vector graphics |
+| **Embedding CSV** | X, Y coordinates + labels + colors as CSV |
+| **Cell Sets CSV** | Cell index + cluster label as CSV |
+
+CSV options appear automatically when the chart has data loaded. The `Embedding CSV` and `Cell Sets CSV` formats are equivalent to Vitessce's obsEmbedding and obsSets downloads.
+
+### Programmatic Export
+
+Export methods are also available via ref without the modal:
 
 ```tsx
 const chartRef = useRef<ScatterChartHandle>(null);
@@ -162,6 +175,32 @@ chartRef.current?.instance?.exportPNG('my-umap');
 
 // Download as SVG
 chartRef.current?.instance?.exportSVG('my-umap');
+```
+
+### Custom Download Options (for library authors)
+
+Subclasses can override `getDownloadOptions()` and `handleDownloadSelect()` to add custom export formats:
+
+```typescript
+import { BaseChart } from '@seegak/bio-charts';
+import type { DownloadOption } from '@seegak/core';
+
+class MyChart extends BaseChart {
+  protected override getDownloadOptions(): DownloadOption[] {
+    return [
+      ...super.getDownloadOptions(),
+      { id: 'json', label: 'JSON Data', description: 'Raw chart data as JSON' },
+    ];
+  }
+
+  protected override handleDownloadSelect(id: string): void {
+    if (id === 'json') {
+      // custom export logic
+      return;
+    }
+    super.handleDownloadSelect(id);
+  }
+}
 ```
 
 ## Ref API

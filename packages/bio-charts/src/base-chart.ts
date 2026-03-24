@@ -1,11 +1,11 @@
 import {
   RenderEngine, InteractionHandler, TextRenderer,
-  ChartToolbar, AnnotationOverlay,
-  exportToPNG, exportToSVG, downloadBlob, downloadSVG,
+  ChartToolbar, AnnotationOverlay, DownloadModal,
+  exportToPNG, exportToSVG, exportCSV, downloadBlob, downloadSVG,
   type Camera, type Viewport,
   type ToolType, type ActionType, type ToolPreset,
   type ChartToolbarOptions, type SelectionEvent,
-  type ExportOptions,
+  type ExportOptions, type DownloadOption, type CsvColumn,
 } from '@seegak/core';
 
 export interface ChartMargin {
@@ -63,6 +63,8 @@ export abstract class BaseChart {
   readonly toolbar: ChartToolbar | null;
   /** Annotation / selection overlay */
   readonly overlay: AnnotationOverlay;
+  /** Download modal */
+  private downloadModal: DownloadModal | null = null;
 
   constructor(container: HTMLElement, options: BaseChartOptions = {}) {
     this.container = container;
@@ -168,8 +170,41 @@ export abstract class BaseChart {
 
   /** Handle toolbar action button clicks */
   private handleAction(action: ActionType): void {
-    if (action === 'save-png') this.exportPNG();
-    else if (action === 'save-svg') this.exportSVG();
+    if (action === 'download') {
+      this.showDownloadModal();
+    } else if (action === 'save-png') {
+      this.exportPNG();
+    } else if (action === 'save-svg') {
+      this.exportSVG();
+    }
+  }
+
+  /** Show download options modal */
+  private showDownloadModal(): void {
+    if (!this.downloadModal) {
+      const options = this.getDownloadOptions();
+      this.downloadModal = new DownloadModal(
+        this.container,
+        (id) => this.handleDownloadSelect(id),
+        options,
+      );
+    }
+    // Position near the toolbar download button (bottom-left area)
+    this.downloadModal.toggle(44, 8);
+  }
+
+  /** Override in subclasses to add custom download options (e.g. CSV) */
+  protected getDownloadOptions(): DownloadOption[] {
+    return [
+      { id: 'png', label: 'PNG Image', description: 'High-resolution raster image (2x)' },
+      { id: 'svg', label: 'SVG Image', description: 'Vector graphics' },
+    ];
+  }
+
+  /** Override in subclasses to handle custom download types */
+  protected handleDownloadSelect(id: string): void {
+    if (id === 'png') this.exportPNG();
+    else if (id === 'svg') this.exportSVG();
   }
 
   /** Export chart as PNG and trigger download */
@@ -185,6 +220,7 @@ export abstract class BaseChart {
   }
 
   destroy(): void {
+    this.downloadModal?.destroy();
     this.interaction?.destroy();
     this.overlay.destroy();
     this.toolbar?.destroy();
