@@ -68,7 +68,6 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
 
     const can3D = !!(enable3D && z && z.length > 0);
     const [is3D, setIs3D] = useState(can3D && (initial3D ?? false));
-    const [ever3D, setEver3D] = useState(is3D); // tracks whether 3D was ever activated
 
     // Container refs
     const wrapperRef = useRef<HTMLDivElement>(null!);
@@ -91,85 +90,41 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
       legend, legendTitle, legendPosition, axes, xLabel, yLabel,
     };
 
-    // Stable refs for data/z so toggle effect can read latest values
-    const dataRef = useRef(data);
-    dataRef.current = data;
-    const zRef = useRef(z);
-    zRef.current = z;
-
     // Create 2D chart on mount
     useEffect(() => {
       if (!container2DRef.current) return;
       const chart = new ScatterChartCore(container2DRef.current, optsRef.current as unknown as Record<string, unknown>);
       chart2DRef.current = chart;
-      return () => {
-        chart.destroy(); chart2DRef.current = null;
-        // Also cleanup 3D if it was created
-        if (chart3DRef.current) { chart3DRef.current.destroy(); chart3DRef.current = null; }
-      };
+      return () => { chart.destroy(); chart2DRef.current = null; };
     }, []);
 
-    // Update 2D data (skip when in 3D mode)
+    // Create 3D chart on mount (visibility:hidden keeps dimensions valid)
     useEffect(() => {
-      if (!chart2DRef.current || data == null || is3D) return;
+      if (!can3D || !container3DRef.current) return;
+      const chart = new Scatter3DViewCore(container3DRef.current, {
+        pointSize: optsRef.current.pointSize,
+        opacity: optsRef.current.opacity,
+      });
+      chart3DRef.current = chart;
+      return () => { chart.destroy(); chart3DRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [can3D]);
+
+    // Update 2D data
+    useEffect(() => {
+      if (!chart2DRef.current || data == null) return;
       if (worker) {
         void chart2DRef.current.updateAsync(data, worker);
       } else {
         chart2DRef.current.update(data);
       }
-    }, [data, worker, is3D]);
+    }, [data, worker]);
 
-    // Handle toggling: lazy-create 3D chart, resize + re-upload data
+    // Update 3D data
     useEffect(() => {
-      if (is3D && !ever3D) {
-        // First 3D activation — set ever3D to render the container div,
-        // then return. The next render will have the container in DOM,
-        // and this effect will re-run because ever3D changed.
-        setEver3D(true);
-        return;
-      }
-
-      // Wait two frames: first for React DOM commit, second for browser layout
-      const init = () => {
-        if (is3D) {
-          // Lazy-create 3D chart on first toggle
-          if (!chart3DRef.current && container3DRef.current) {
-            // Ensure container has dimensions before creating WebGL context
-            if (container3DRef.current.clientWidth === 0 || container3DRef.current.clientHeight === 0) {
-              // Layout not ready yet, try again next frame
-              requestAnimationFrame(init);
-              return;
-            }
-            const chart = new Scatter3DViewCore(container3DRef.current, {
-              pointSize: optsRef.current.pointSize,
-              opacity: optsRef.current.opacity,
-            });
-            chart3DRef.current = chart;
-          }
-          const d = dataRef.current;
-          const zz = zRef.current;
-          if (chart3DRef.current && d && zz) {
-            chart3DRef.current.resize();
-            chart3DRef.current.setData({ x: d.x, y: d.y, z: zz, labels: d.labels, colors: d.colors });
-          }
-        } else {
-          // Switching back to 2D
-          if (chart2DRef.current) {
-            chart2DRef.current.resize();
-            const d = dataRef.current;
-            if (d) chart2DRef.current.update(d);
-          }
-        }
-      };
-      requestAnimationFrame(() => requestAnimationFrame(init));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [is3D, ever3D]);
-
-    // Update 3D data when data/z changes while in 3D mode
-    useEffect(() => {
-      if (!chart3DRef.current || data == null || !z || !is3D) return;
+      if (!chart3DRef.current || data == null || !z) return;
       chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
-    }, [data, z, is3D]);
+    }, [data, z]);
 
     const toggle3D = useCallback(() => {
       if (!can3D) return;
@@ -197,17 +152,19 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
           ref={container2DRef}
           style={{
             position: 'absolute', inset: 0,
-            display: is3D ? 'none' : 'block',
+            visibility: is3D ? 'hidden' : 'visible',
+            zIndex: is3D ? 0 : 1,
           }}
         />
 
-        {/* 3D chart container — only rendered after first 3D activation */}
-        {can3D && ever3D && (
+        {/* 3D chart container — always mounted if can3D, hidden via visibility */}
+        {can3D && (
           <div
             ref={container3DRef}
             style={{
               position: 'absolute', inset: 0,
-              display: is3D ? 'block' : 'none',
+              visibility: is3D ? 'visible' : 'hidden',
+              zIndex: is3D ? 1 : 0,
             }}
           />
         )}
