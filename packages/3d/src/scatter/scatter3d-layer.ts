@@ -147,42 +147,53 @@ export class Scatter3DLayer implements RenderLayer {
     this.freeGPU();
 
     const n = data.x.length;
-    this.pointCount = n;
+    const hasHidden = hiddenLabels && hiddenLabels.size > 0 && data.labels;
 
-    // Build interleaved position buffer (xyz)
-    const positions = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) {
-      positions[i * 3] = data.x[i]!;
-      positions[i * 3 + 1] = data.y[i]!;
-      positions[i * 3 + 2] = flatten ? 0 : data.z[i]!;
+    // Count visible points
+    let visibleCount = n;
+    if (hasHidden) {
+      visibleCount = 0;
+      for (let i = 0; i < n; i++) {
+        if (!hiddenLabels.has(data.labels![i]!)) visibleCount++;
+      }
+    }
+    this.pointCount = visibleCount;
+
+    // Build position and color buffers with only visible points
+    const positions = new Float32Array(visibleCount * 3);
+    const colors = new Float32Array(visibleCount * 4);
+
+    // Pre-build label→color map for palette mode
+    const labelMap = new Map<string, number>();
+    if (data.labels && !data.colors) {
+      for (const label of data.labels) {
+        if (!labelMap.has(label)) labelMap.set(label, labelMap.size);
+      }
     }
 
-    // Build color buffer (rgba) — hidden labels get alpha=0
-    const colors = new Float32Array(n * 4);
-    if (data.colors && data.colors.length === n) {
-      for (let i = 0; i < n; i++) {
-        const hidden = hiddenLabels && data.labels && hiddenLabels.has(data.labels[i]!);
+    let out = 0;
+    for (let i = 0; i < n; i++) {
+      // Skip hidden points entirely
+      if (hasHidden && hiddenLabels.has(data.labels![i]!)) continue;
+
+      positions[out * 3] = data.x[i]!;
+      positions[out * 3 + 1] = data.y[i]!;
+      positions[out * 3 + 2] = flatten ? 0 : data.z[i]!;
+
+      if (data.colors && data.colors.length === n) {
         const c = hexToRGBA(data.colors[i]!);
-        colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
-        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = hidden ? 0 : c[3];
-      }
-    } else if (data.labels) {
-      // Assign palette colors by label
-      const labelMap = new Map<string, number>();
-      for (let i = 0; i < n; i++) {
+        colors[out * 4] = c[0]; colors[out * 4 + 1] = c[1];
+        colors[out * 4 + 2] = c[2]; colors[out * 4 + 3] = c[3];
+      } else if (data.labels) {
         const label = data.labels[i] ?? '';
-        if (!labelMap.has(label)) labelMap.set(label, labelMap.size);
-        const hidden = hiddenLabels && hiddenLabels.has(label);
         const c = hexToRGBA(CLUSTER_PALETTE[labelMap.get(label)! % CLUSTER_PALETTE.length]!);
-        colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
-        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = hidden ? 0 : c[3];
+        colors[out * 4] = c[0]; colors[out * 4 + 1] = c[1];
+        colors[out * 4 + 2] = c[2]; colors[out * 4 + 3] = c[3];
+      } else {
+        colors[out * 4] = 0.376; colors[out * 4 + 1] = 0.510;
+        colors[out * 4 + 2] = 0.953; colors[out * 4 + 3] = 1;
       }
-    } else {
-      // Default: light blue
-      for (let i = 0; i < n; i++) {
-        colors[i * 4] = 0.376; colors[i * 4 + 1] = 0.510;
-        colors[i * 4 + 2] = 0.953; colors[i * 4 + 3] = 1;
-      }
+      out++;
     }
 
     // Upload to GPU
