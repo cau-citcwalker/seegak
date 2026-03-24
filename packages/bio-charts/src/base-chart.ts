@@ -67,6 +67,7 @@ export abstract class BaseChart {
   constructor(container: HTMLElement, options: BaseChartOptions = {}) {
     this.container = container;
     container.style.position = 'relative';
+    container.style.overflow = 'hidden';
 
     this.showAxes = options.axes !== false;
 
