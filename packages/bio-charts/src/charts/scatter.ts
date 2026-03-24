@@ -6,7 +6,9 @@ import {
   Tooltip, throttle,
   SpatialIndex,
   DataWorker,
+  exportCSV,
   type SelectionEvent,
+  type DownloadOption,
   VIRIDIS,
 } from '@seegak/core';
 import { BaseChart, type BaseChartOptions } from '../base-chart.js';
@@ -729,6 +731,47 @@ export class ScatterChart extends BaseChart {
     };
 
     this.update(downsampled);
+  }
+
+  // ─── Download ─────────────────────────────────────────────────────────────
+
+  protected override getDownloadOptions(): DownloadOption[] {
+    const base: DownloadOption[] = [
+      { id: 'png', label: 'PNG Image', description: 'High-resolution raster image (2x)' },
+      { id: 'svg', label: 'SVG Image', description: 'Vector graphics' },
+    ];
+    if (this.currentData) {
+      base.push({ id: 'csv-embedding', label: 'Embedding CSV', description: 'X, Y coordinates + labels' });
+      if (this.currentData.labels) {
+        base.push({ id: 'csv-obs-sets', label: 'Cell Sets CSV', description: 'Cell index, cluster label' });
+      }
+    }
+    return base;
+  }
+
+  protected override handleDownloadSelect(id: string): void {
+    if (id === 'png') { this.exportPNG(); return; }
+    if (id === 'svg') { this.exportSVG(); return; }
+
+    const data = this.currentData;
+    if (!data) return;
+
+    if (id === 'csv-embedding') {
+      const columns: Array<{ header: string; values: ArrayLike<number> | string[] }> = [
+        { header: 'x', values: data.x },
+        { header: 'y', values: data.y },
+      ];
+      if (data.labels) columns.push({ header: 'label', values: data.labels });
+      if (data.colors) columns.push({ header: 'color', values: data.colors });
+      exportCSV(columns, 'embedding.csv');
+    } else if (id === 'csv-obs-sets') {
+      if (!data.labels) return;
+      const indices = Array.from({ length: data.labels.length }, (_, i) => String(i));
+      exportCSV([
+        { header: 'index', values: indices },
+        { header: 'label', values: data.labels },
+      ], 'cell-sets.csv');
+    }
   }
 
   destroy(): void {

@@ -52,8 +52,12 @@ export { SpatialIndex } from './utils/spatial-index.js';
 export type { SpatialIndexOptions } from './utils/spatial-index.js';
 
 // Export
-export { exportChart, exportToPNG, exportToSVG, downloadBlob, downloadSVG } from './renderer/exporter.js';
-export type { ExportOptions } from './renderer/exporter.js';
+export { exportChart, exportToPNG, exportToSVG, exportCSV, downloadBlob, downloadSVG } from './renderer/exporter.js';
+export type { ExportOptions, CsvColumn } from './renderer/exporter.js';
+
+// Download Modal
+export { DownloadModal } from './renderer/download-modal.js';
+export type { DownloadOption } from './renderer/download-modal.js';
 
 // Worker
 export { DataWorker } from './worker/data-worker.js';

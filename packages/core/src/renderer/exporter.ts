@@ -156,3 +156,37 @@ export async function exportChart(
     downloadSVG(svg, `${filename}.svg`);
   }
 }
+
+// ─── CSV Export ──────────────────────────────────────────────────────────────
+
+export interface CsvColumn {
+  header: string;
+  values: ArrayLike<number> | string[];
+}
+
+/**
+ * Export tabular data as a CSV file and trigger download.
+ */
+export function exportCSV(columns: CsvColumn[], filename: string): void {
+  if (columns.length === 0) return;
+  const nRows = columns[0]!.values.length;
+
+  const headerLine = columns.map(c => c.header).join(',');
+  const lines = [headerLine];
+
+  for (let i = 0; i < nRows; i++) {
+    const row = columns.map(col => {
+      const v = col.values[i];
+      if (typeof v === 'string') {
+        // Escape commas/quotes in strings
+        return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+      }
+      return String(v);
+    });
+    lines.push(row.join(','));
+  }
+
+  const csv = lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(blob, filename);
+}

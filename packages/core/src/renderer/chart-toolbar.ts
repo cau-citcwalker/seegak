@@ -3,7 +3,7 @@
 export type ToolType = 'pan' | 'draw' | 'line' | 'box-select' | 'lasso' | 'eraser';
 
 /** Action buttons (non-toggle, fire-and-forget) */
-export type ActionType = 'save-png' | 'save-svg';
+export type ActionType = 'download' | 'save-png' | 'save-svg';
 
 /** Preset tool sets */
 export type ToolPreset = 'full' | 'standard' | 'minimal';
@@ -15,8 +15,8 @@ const PRESET_TOOLS: Record<ToolPreset, ToolType[]> = {
 };
 
 const PRESET_ACTIONS: Record<ToolPreset, ActionType[]> = {
-  full:     ['save-png', 'save-svg'],
-  standard: ['save-png'],
+  full:     ['download'],
+  standard: ['download'],
   minimal:  [],
 };
 
@@ -55,6 +55,12 @@ const ICONS: Record<ToolType | ActionType, string> = {
     <path d="M10 7.5l2.5-2.5 5 5-2.5 2.5"/>
   </svg>`,
 
+  download: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2"/>
+    <path d="M10 3v10"/>
+    <path d="M6.5 9.5L10 13l3.5-3.5"/>
+  </svg>`,
+
   'save-png': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2"/>
     <path d="M10 3v10"/>
@@ -76,6 +82,7 @@ const LABELS: Record<ToolType | ActionType, string> = {
   'box-select': 'Box Select',
   lasso: 'Lasso',
   eraser: 'Eraser',
+  download: 'Download',
   'save-png': 'Save PNG',
   'save-svg': 'Save SVG',
 };
