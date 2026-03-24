@@ -129,11 +129,17 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
         return;
       }
 
-      // Wait one frame for display:block to take effect
-      requestAnimationFrame(() => {
+      // Wait two frames: first for React DOM commit, second for browser layout
+      const init = () => {
         if (is3D) {
           // Lazy-create 3D chart on first toggle
           if (!chart3DRef.current && container3DRef.current) {
+            // Ensure container has dimensions before creating WebGL context
+            if (container3DRef.current.clientWidth === 0 || container3DRef.current.clientHeight === 0) {
+              // Layout not ready yet, try again next frame
+              requestAnimationFrame(init);
+              return;
+            }
             const chart = new Scatter3DViewCore(container3DRef.current, {
               pointSize: optsRef.current.pointSize,
               opacity: optsRef.current.opacity,
@@ -154,7 +160,8 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
             if (d) chart2DRef.current.update(d);
           }
         }
-      });
+      };
+      requestAnimationFrame(() => requestAnimationFrame(init));
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is3D, ever3D]);
 
