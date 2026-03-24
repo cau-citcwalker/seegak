@@ -33,6 +33,25 @@ export class ArcballCamera {
   }
 
   /**
+   * Pan the camera target in screen-space (right-drag).
+   * Moves the target along the camera's local right and up axes.
+   */
+  handlePan(dx: number, dy: number, sensitivity: number = 0.002): void {
+    const cosY = Math.cos(this.rotY);
+    const sinY = Math.sin(this.rotY);
+
+    // Camera right vector (perpendicular to look direction in xz plane)
+    const rightX = cosY;
+    const rightZ = -sinY;
+
+    // Camera up is approximately world Y for moderate pitch
+    const scale = this.distance * sensitivity;
+    this.target[0] += rightX * dx * scale;
+    this.target[2] += rightZ * dx * scale;
+    this.target[1] -= dy * scale;
+  }
+
+  /**
    * Apply a wheel delta to zoom in/out.
    * @param delta  positive = zoom out, negative = zoom in (e.g. WheelEvent.deltaY)
    */

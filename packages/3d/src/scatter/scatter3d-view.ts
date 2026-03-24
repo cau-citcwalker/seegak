@@ -18,6 +18,7 @@ export class Scatter3DView extends BaseChart {
 
   // Interaction state
   private pointerDown = false;
+  private pointerButton = 0; // 0=left(rotate), 2=right(pan)
   private lastX = 0;
   private lastY = 0;
 
@@ -128,6 +129,7 @@ export class Scatter3DView extends BaseChart {
     canvas.addEventListener('touchstart', this.onTouchStart, { passive: false });
     canvas.addEventListener('touchmove', this.onTouchMove, { passive: false });
     canvas.addEventListener('touchend', this.onTouchEnd);
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.tabIndex = 0;
   }
 
@@ -145,7 +147,9 @@ export class Scatter3DView extends BaseChart {
   }
 
   private readonly onMouseDown = (e: MouseEvent): void => {
+    e.preventDefault();
     this.pointerDown = true;
+    this.pointerButton = e.button;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
     (e.currentTarget as HTMLElement).focus?.();
@@ -157,7 +161,14 @@ export class Scatter3DView extends BaseChart {
     const dy = e.clientY - this.lastY;
     this.lastX = e.clientX;
     this.lastY = e.clientY;
-    this.arcball.handleMouseDrag(dx, dy);
+
+    if (this.pointerButton === 2 || e.shiftKey) {
+      // Right-drag or shift+drag → pan
+      this.arcball.handlePan(dx, dy);
+    } else {
+      // Left-drag → rotate
+      this.arcball.handleMouseDrag(dx, dy);
+    }
     this.updateMatrices();
     this.engine.requestRender();
   };

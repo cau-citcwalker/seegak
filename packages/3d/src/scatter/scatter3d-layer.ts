@@ -21,7 +21,7 @@ void main() {
   gl_Position = u_mvp * vec4(a_position, 1.0);
   // Scale point size by depth so distant points are smaller
   float depth = gl_Position.w;
-  gl_PointSize = u_pointSize * (1.0 / max(depth, 0.1));
+  gl_PointSize = clamp(u_pointSize * (2.0 / max(depth, 0.1)), 1.0, 64.0);
   v_color = a_color;
 }
 `;
