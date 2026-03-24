@@ -27,7 +27,7 @@ export class ArcballCamera {
    */
   handleMouseDrag(dx: number, dy: number, sensitivity: number = 0.005): void {
     this.rotY -= dx * sensitivity;
-    this.rotX -= dy * sensitivity;
+    this.rotX += dy * sensitivity;
     // Clamp pitch so the camera doesn't flip over
     this.rotX = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, this.rotX));
   }
@@ -46,9 +46,9 @@ export class ArcballCamera {
 
     // Camera up is approximately world Y for moderate pitch
     const scale = this.distance * sensitivity;
-    this.target[0] += rightX * dx * scale;
-    this.target[2] += rightZ * dx * scale;
-    this.target[1] -= dy * scale;
+    this.target[0] -= rightX * dx * scale;
+    this.target[2] -= rightZ * dx * scale;
+    this.target[1] += dy * scale;
   }
 
   /**
