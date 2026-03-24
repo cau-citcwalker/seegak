@@ -1,6 +1,7 @@
 import { BaseChart } from '@seegak/bio-charts';
 import type { Scatter3DData, Scatter3DOptions } from '../types.js';
 import { Scatter3DLayer } from './scatter3d-layer.js';
+import { Scatter3DToolbar } from './scatter3d-toolbar.js';
 import { ArcballCamera } from '../math/arcball.js';
 import { mat4Perspective } from '../math/mat4.js';
 
@@ -13,6 +14,7 @@ import { mat4Perspective } from '../math/mat4.js';
 export class Scatter3DView extends BaseChart {
   private readonly layer: Scatter3DLayer;
   private readonly arcball: ArcballCamera;
+  readonly toolbar3D: Scatter3DToolbar;
   private currentData: Scatter3DData | null = null;
   private _flatten: boolean;
 
@@ -35,6 +37,16 @@ export class Scatter3DView extends BaseChart {
     this.layer = new Scatter3DLayer();
     this.layer.pointSize = options.pointSize ?? 4;
     this.layer.opacity = options.opacity ?? 0.85;
+
+    // 3D-specific toolbar
+    this.toolbar3D = new Scatter3DToolbar(container, {
+      onFlattenChange: (v) => this.setFlatten(v),
+      onPointSizeChange: (v) => this.setPointSize(v),
+      onResetCamera: () => this.resetCamera(),
+    }, {
+      initialPointSize: options.pointSize ?? 4,
+      initialFlatten: options.flatten ?? false,
+    });
 
     this.updateMatrices();
     this.engine.addLayer(this.layer);
@@ -72,6 +84,7 @@ export class Scatter3DView extends BaseChart {
 
   setPointSize(size: number): void {
     this.layer.pointSize = size;
+    this.toolbar3D.setPointSize(size);
     this.engine.requestRender();
   }
 
@@ -83,6 +96,7 @@ export class Scatter3DView extends BaseChart {
   /** Toggle between 3D and flattened 2D mode */
   setFlatten(flatten: boolean): void {
     this._flatten = flatten;
+    this.toolbar3D.setFlatten(flatten);
     if (this.currentData) {
       this.layer.setData(this.currentData, this.engine.gl, flatten);
       this.engine.requestRender();
@@ -252,6 +266,7 @@ export class Scatter3DView extends BaseChart {
   }
 
   override destroy(): void {
+    this.toolbar3D.destroy();
     this.detachInteraction();
     super.destroy();
   }
