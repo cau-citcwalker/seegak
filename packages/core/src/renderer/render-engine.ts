@@ -58,17 +58,18 @@ export class RenderEngine {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // Observe container resize
+    // Observe canvas element resize (not container, which may include
+    // toolbar/legend/overlay DOM and report a larger height)
     this.resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
       if (entry) {
         this.handleResize(entry.contentRect.width, entry.contentRect.height);
       }
     });
-    this.resizeObserver.observe(container);
+    this.resizeObserver.observe(this.canvas);
 
-    // Initial size
-    this.handleResize(container.clientWidth, container.clientHeight);
+    // Initial size based on canvas CSS dimensions
+    this.handleResize(this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
   private handleResize(width: number, height: number): void {
