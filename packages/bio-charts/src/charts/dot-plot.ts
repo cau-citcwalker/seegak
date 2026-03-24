@@ -203,8 +203,8 @@ export class DotPlotChart extends BaseChart {
     this.tooltip?.show(sx, sy, {
       title: `${clusters[ci]}  ×  ${genes[gi]}`,
       rows: [
-        { label: '평균 발현', value: expr.toFixed(4) },
-        { label: '발현 세포 비율', value: `${(frac * 100).toFixed(1)}%` },
+        { label: 'Mean Expression', value: expr.toFixed(4) },
+        { label: 'Fraction Expressing', value: `${(frac * 100).toFixed(1)}%` },
       ],
     });
   }
@@ -368,7 +368,7 @@ export class DotPlotChart extends BaseChart {
     ctx.rotate(-Math.PI / 2);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText('평균 발현', 0, 0);
+    ctx.fillText('Mean Expression', 0, 0);
     ctx.restore();
   }
 
@@ -394,7 +394,7 @@ export class DotPlotChart extends BaseChart {
     ctx.textAlign = 'left';
 
     ctx.textBaseline = 'middle';
-    ctx.fillText('발현 비율', legendX, offsetY - 12);
+    ctx.fillText('Fraction Expressing', legendX, offsetY - 12);
 
     for (const frac of fracs) {
       const dotR = r * frac;

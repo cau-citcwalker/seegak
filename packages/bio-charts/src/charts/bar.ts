@@ -163,18 +163,18 @@ export class BarChart extends BaseChart {
         title: stacked.label,
         rows: [
           ...stacked.segments.map(seg => ({
-            label: seg.label ?? '세그먼트',
+            label: seg.label ?? 'Segment',
             value: seg.value.toLocaleString(),
             color: seg.color,
           })),
-          { label: '합계', value: total.toLocaleString() },
+          { label: 'Total', value: total.toLocaleString() },
         ],
       });
     } else {
       const simple = g as import('./bar.js').BarGroup;
       this.tooltip.show(sx, sy, {
         title: simple.label,
-        rows: [{ label: '값', value: simple.value.toLocaleString() }],
+        rows: [{ label: 'Value', value: simple.value.toLocaleString() }],
       });
     }
   }

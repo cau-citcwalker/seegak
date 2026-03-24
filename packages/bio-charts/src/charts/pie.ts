@@ -150,8 +150,8 @@ export class PieChart extends BaseChart {
     this.tooltip.show(sx, sy, {
       title: slice.label,
       rows: [
-        { label: '값', value: slice.value.toLocaleString(), color: slice.color },
-        { label: '비율', value: `${((slice.value / total) * 100).toFixed(1)}%` },
+        { label: 'Value', value: slice.value.toLocaleString(), color: slice.color },
+        { label: 'Ratio', value: `${((slice.value / total) * 100).toFixed(1)}%` },
       ],
     });
   }
