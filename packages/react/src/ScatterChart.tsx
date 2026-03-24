@@ -68,6 +68,7 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
 
     const can3D = !!(enable3D && z && z.length > 0);
     const [is3D, setIs3D] = useState(can3D && (initial3D ?? false));
+    const [ever3D, setEver3D] = useState(is3D); // tracks whether 3D was ever activated
 
     // Container refs
     const wrapperRef = useRef<HTMLDivElement>(null!);
@@ -90,27 +91,25 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
       legend, legendTitle, legendPosition, axes, xLabel, yLabel,
     };
 
+    // Stable refs for data/z so toggle effect can read latest values
+    const dataRef = useRef(data);
+    dataRef.current = data;
+    const zRef = useRef(z);
+    zRef.current = z;
+
     // Create 2D chart on mount
     useEffect(() => {
       if (!container2DRef.current) return;
       const chart = new ScatterChartCore(container2DRef.current, optsRef.current as unknown as Record<string, unknown>);
       chart2DRef.current = chart;
-      return () => { chart.destroy(); chart2DRef.current = null; };
+      return () => {
+        chart.destroy(); chart2DRef.current = null;
+        // Also cleanup 3D if it was created
+        if (chart3DRef.current) { chart3DRef.current.destroy(); chart3DRef.current = null; }
+      };
     }, []);
 
-    // Create 3D chart on mount (only if enable3D)
-    useEffect(() => {
-      if (!can3D || !container3DRef.current) return;
-      const chart = new Scatter3DViewCore(container3DRef.current, {
-        pointSize: optsRef.current.pointSize,
-        opacity: optsRef.current.opacity,
-      });
-      chart3DRef.current = chart;
-      return () => { chart.destroy(); chart3DRef.current = null; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [can3D]);
-
-    // Update 2D data
+    // Update 2D data (skip when in 3D mode)
     useEffect(() => {
       if (!chart2DRef.current || data == null || is3D) return;
       if (worker) {
@@ -120,32 +119,50 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
       }
     }, [data, worker, is3D]);
 
-    // Update 3D data
+    // Handle toggling: lazy-create 3D chart, resize + re-upload data
     useEffect(() => {
-      if (!chart3DRef.current || data == null || !z || !is3D) return;
-      const data3D: Scatter3DData = { x: data.x, y: data.y, z, labels: data.labels, colors: data.colors };
-      chart3DRef.current.setData(data3D);
-    }, [data, z, is3D]);
+      if (is3D && !ever3D) {
+        // First 3D activation — set ever3D to render the container div,
+        // then return. The next render will have the container in DOM,
+        // and this effect will re-run because ever3D changed.
+        setEver3D(true);
+        return;
+      }
 
-    // When toggling, the previously-hidden container has a stale canvas size.
-    // Force a resize + data re-upload so the chart renders correctly.
-    useEffect(() => {
-      // Wait for display:block to take effect
+      // Wait one frame for display:block to take effect
       requestAnimationFrame(() => {
         if (is3D) {
-          if (chart3DRef.current && data && z) {
+          // Lazy-create 3D chart on first toggle
+          if (!chart3DRef.current && container3DRef.current) {
+            const chart = new Scatter3DViewCore(container3DRef.current, {
+              pointSize: optsRef.current.pointSize,
+              opacity: optsRef.current.opacity,
+            });
+            chart3DRef.current = chart;
+          }
+          const d = dataRef.current;
+          const zz = zRef.current;
+          if (chart3DRef.current && d && zz) {
             chart3DRef.current.resize();
-            chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
+            chart3DRef.current.setData({ x: d.x, y: d.y, z: zz, labels: d.labels, colors: d.colors });
           }
         } else {
-          if (chart2DRef.current && data) {
+          // Switching back to 2D
+          if (chart2DRef.current) {
             chart2DRef.current.resize();
-            chart2DRef.current.update(data);
+            const d = dataRef.current;
+            if (d) chart2DRef.current.update(d);
           }
         }
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [is3D]);
+    }, [is3D, ever3D]);
+
+    // Update 3D data when data/z changes while in 3D mode
+    useEffect(() => {
+      if (!chart3DRef.current || data == null || !z || !is3D) return;
+      chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
+    }, [data, z, is3D]);
 
     const toggle3D = useCallback(() => {
       if (!can3D) return;
@@ -177,8 +194,8 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
           }}
         />
 
-        {/* 3D chart container */}
-        {can3D && (
+        {/* 3D chart container — only rendered after first 3D activation */}
+        {can3D && ever3D && (
           <div
             ref={container3DRef}
             style={{
