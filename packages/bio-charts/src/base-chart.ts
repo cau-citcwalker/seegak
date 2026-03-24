@@ -83,6 +83,9 @@ export abstract class BaseChart {
     const defaultMargin = this.showAxes ? DEFAULT_MARGIN : MINIMAL_MARGIN;
     this.margin = { ...defaultMargin, ...options.margin };
 
+    // Re-render chart on canvas resize (recalculates text positions, bar widths, etc.)
+    this.engine.onResize(() => this.handleEngineResize());
+
     if (options.interactive !== false) {
       this.interaction = new InteractionHandler(this.engine);
     }
@@ -126,8 +129,28 @@ export abstract class BaseChart {
     };
   }
 
+  /** Last data passed to update(), used for re-rendering on resize */
+  private _lastUpdateData: unknown = null;
+  private _resizeTimer = 0;
+
   /** Override to update chart when data changes */
   abstract update(data: unknown): void;
+
+  /** Call this at the start of your update() to enable resize re-rendering */
+  protected storeData(data: unknown): void {
+    this._lastUpdateData = data;
+  }
+
+  /** Called when the canvas resizes — debounced re-render with last data */
+  private handleEngineResize(): void {
+    clearTimeout(this._resizeTimer);
+    this._resizeTimer = window.setTimeout(() => {
+      if (this._lastUpdateData != null) {
+        this.text.clear();
+        this.update(this._lastUpdateData);
+      }
+    }, 50);
+  }
 
   /** Force a re-render */
   render(): void {

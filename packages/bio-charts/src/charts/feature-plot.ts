@@ -217,6 +217,7 @@ export class FeaturePlotChart extends BaseChart {
   }
 
   update(data: FeaturePlotData): void {
+    this.storeData(data);
     this.currentData = data;
     const n = data.x.length;
 

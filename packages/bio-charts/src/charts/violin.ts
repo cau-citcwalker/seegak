@@ -236,6 +236,7 @@ export class ViolinPlotChart extends BaseChart {
   // ─── Update ───
 
   update(data: ViolinPlotData): void {
+    this.storeData(data);
     this.currentData = data;
     const { groups } = data;
     const n = groups.length;

@@ -221,6 +221,7 @@ export class HeatmapChart extends BaseChart {
   // ─── Update ───
 
   update(data: HeatmapData): void {
+    this.storeData(data);
     this.currentData = data;
     const { genes, rows, expression, rowClusters, clusterColors } = data;
     const G = genes.length;

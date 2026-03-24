@@ -163,6 +163,7 @@ export class PieChart extends BaseChart {
   }
 
   update(data: PieChartData): void {
+    this.storeData(data);
     // Group small slices into "Others"
     const rawTotal = data.slices.reduce((s, d) => s + d.value, 0);
     const threshold = this.opts.groupThreshold / 100;
