@@ -61,6 +61,9 @@ export type { VolumeViewProps, VolumeViewHandle } from './3d/VolumeView.js';
 export { MeshView } from './3d/MeshView.js';
 export type { MeshViewProps, MeshViewHandle } from './3d/MeshView.js';
 
+export { Scatter3DView } from './3d/Scatter3DView.js';
+export type { Scatter3DViewProps, Scatter3DViewHandle } from './3d/Scatter3DView.js';
+
 // ─── Coordination ─────────────────────────────────────────────────────────────
 export { CoordinationProvider, useCoordination } from './coordination/CoordinationProvider.js';
 
@@ -111,6 +114,7 @@ export type {
 export type {
   VolumeData, VolumeOptions,
   MeshData, MeshOptions,
+  Scatter3DData, Scatter3DOptions,
 } from '@seegak/3d';
 
 export type { CoordinationSpec, CoordinationScope } from '@seegak/coordination';
