@@ -34,10 +34,15 @@ export class CellLegend {
   private clickTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private _minimized = false;
 
-  // Drag state
+  // Drag state (expanded panel)
   private isDragging = false;
   private dragOffsetX = 0;
   private dragOffsetY = 0;
+
+  // Drag state (minimized icon)
+  private minDragging = false;
+  private minDragOffsetX = 0;
+  private minDragOffsetY = 0;
 
   constructor(
     container: HTMLElement,
@@ -154,7 +159,7 @@ export class CellLegend {
     this.minimizedEl.style.cssText = [
       'position:absolute',
       pos === 'right' ? 'right:8px' : 'left:44px',
-      'top:8px',
+      'top:48px',  // Below the 2D/3D toggle button
       'z-index:10',
       'width:32px',
       'height:32px',
@@ -165,14 +170,43 @@ export class CellLegend {
       'border:1px solid rgba(255,255,255,0.12)',
       'border-radius:6px',
       'color:rgba(200,200,200,0.7)',
-      'cursor:pointer',
+      'cursor:grab',
       'backdrop-filter:blur(6px)',
       'padding:0',
       'transition:background 0.1s',
     ].join(';');
     this.minimizedEl.addEventListener('mouseenter', () => { this.minimizedEl.style.background = 'rgba(40,40,40,0.9)'; });
     this.minimizedEl.addEventListener('mouseleave', () => { this.minimizedEl.style.background = 'rgba(20,20,20,0.82)'; });
-    this.minimizedEl.addEventListener('click', () => this.expand());
+    // Click to expand, but only if not dragging
+    let minDragMoved = false;
+    this.minimizedEl.addEventListener('mousedown', (e: MouseEvent) => {
+      minDragMoved = false;
+      this.minDragging = true;
+      const rect = this.minimizedEl.getBoundingClientRect();
+      this.minDragOffsetX = e.clientX - rect.left;
+      this.minDragOffsetY = e.clientY - rect.top;
+      this.minimizedEl.style.cursor = 'grabbing';
+      const onMove = (ev: MouseEvent) => {
+        if (!this.minDragging) return;
+        minDragMoved = true;
+        const parent = this.minimizedEl.parentElement!;
+        const cr = parent.getBoundingClientRect();
+        const x = Math.max(0, Math.min(cr.width - 32, ev.clientX - cr.left - this.minDragOffsetX));
+        const y = Math.max(0, Math.min(cr.height - 32, ev.clientY - cr.top - this.minDragOffsetY));
+        this.minimizedEl.style.left = `${x}px`;
+        this.minimizedEl.style.top = `${y}px`;
+        this.minimizedEl.style.right = 'auto';
+      };
+      const onUp = () => {
+        this.minDragging = false;
+        this.minimizedEl.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (!minDragMoved) this.expand();
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
     container.appendChild(this.minimizedEl);
   }
 
