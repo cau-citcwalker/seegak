@@ -1,15 +1,25 @@
-import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, useCallback } from 'react';
 import {
   ScatterChart as ScatterChartCore,
   type ScatterData, type ScatterOptions, type ScatterTooltipData, type ScatterSelectEvent,
 } from '@seegak/bio-charts';
-import type { ColorScale, DataWorker, ToolType } from '@seegak/core';
+import {
+  Scatter3DView as Scatter3DViewCore,
+  type Scatter3DData,
+} from '@seegak/3d';
+import type { ColorScale, DataWorker, ToolType, ToolPreset, ActionType } from '@seegak/core';
 import { useChart } from './use-chart.js';
 
 export type { ScatterTooltipData, ScatterSelectEvent };
 
 export interface ScatterChartProps {
   data?: ScatterData | null;
+  /** Optional Z coordinates for 3D mode */
+  z?: Float32Array | null;
+  /** Enable 3D toggle button. Requires z data. */
+  enable3D?: boolean;
+  /** Start in 3D mode. Default: false */
+  initial3D?: boolean;
   pointSize?: number;
   opacity?: number;
   colorScale?: ColorScale;
@@ -18,8 +28,10 @@ export interface ScatterChartProps {
   tooltipFormatter?: ScatterOptions['tooltipFormatter'];
   /** Show toolbar. Default: true */
   toolbar?: boolean;
+  toolbarPreset?: ToolPreset;
   defaultTool?: ToolType;
   tools?: ToolType[];
+  actions?: ActionType[];
   onSelectPoints?: (e: ScatterSelectEvent) => void;
   /** Show cluster legend panel. Default: true when labels present */
   legend?: boolean;
@@ -27,20 +39,8 @@ export interface ScatterChartProps {
   legendPosition?: 'left' | 'right';
   /** Show axis labels and tick marks. Default: true */
   axes?: boolean;
-  /** X-axis label text */
   xLabel?: string;
-  /** Y-axis label text */
   yLabel?: string;
-  /**
-   * DataWorker instance for async LoD downsampling.
-   * When provided and data.x.length > 500k, the dataset is downsampled in a Worker.
-   *
-   * @example
-   * import DataWorkerImpl from '@seegak/core/worker/data-worker-impl?worker';
-   * import { DataWorker } from '@seegak/core';
-   * const worker = DataWorker.fromWorker(new DataWorkerImpl());
-   * <ScatterChart worker={worker} data={data} />
-   */
   worker?: DataWorker;
   style?: React.CSSProperties;
   className?: string;
@@ -48,55 +48,173 @@ export interface ScatterChartProps {
 
 export interface ScatterChartHandle {
   instance: ScatterChartCore | null;
+  instance3D: Scatter3DViewCore | null;
+  is3D: boolean;
+  toggle3D: () => void;
   hitTest: (x: number, y: number) => number | null;
 }
 
 export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
   function ScatterChart({
-    data, pointSize, opacity, colorScale, autoFit,
+    data, z, enable3D, initial3D,
+    pointSize, opacity, colorScale, autoFit,
     tooltip, tooltipFormatter,
-    toolbar, defaultTool, tools, onSelectPoints,
+    toolbar, toolbarPreset, defaultTool, tools, actions, onSelectPoints,
     legend, legendTitle, legendPosition,
     axes, xLabel, yLabel,
     worker,
     style, className,
   }, ref) {
-    // Pass null for data — we handle updates below to support async worker path
-    const { containerRef, chartRef } = useChart<ScatterChartCore, ScatterData>(
-      ScatterChartCore,
-      null,
-      {
-        pointSize, opacity, colorScale, autoFit, tooltip, tooltipFormatter,
-        toolbar, defaultTool, tools, onSelectPoints,
-        legend, legendTitle, legendPosition,
-        axes, xLabel, yLabel,
-      } as unknown as Record<string, unknown>,
-    );
 
+    const can3D = !!(enable3D && z && z.length > 0);
+    const [is3D, setIs3D] = useState(can3D && (initial3D ?? false));
+
+    // Container refs
+    const wrapperRef = useRef<HTMLDivElement>(null!);
+    const container2DRef = useRef<HTMLDivElement>(null!);
+    const container3DRef = useRef<HTMLDivElement>(null!);
+
+    // Chart instances
+    const chart2DRef = useRef<ScatterChartCore | null>(null);
+    const chart3DRef = useRef<Scatter3DViewCore | null>(null);
+
+    // Options ref for stable access
+    const optsRef = useRef({
+      pointSize, opacity, colorScale, autoFit, tooltip, tooltipFormatter,
+      toolbar, toolbarPreset, defaultTool, tools, actions, onSelectPoints,
+      legend, legendTitle, legendPosition, axes, xLabel, yLabel,
+    });
+    optsRef.current = {
+      pointSize, opacity, colorScale, autoFit, tooltip, tooltipFormatter,
+      toolbar, toolbarPreset, defaultTool, tools, actions, onSelectPoints,
+      legend, legendTitle, legendPosition, axes, xLabel, yLabel,
+    };
+
+    // Create 2D chart on mount
     useEffect(() => {
-      if (!chartRef.current || data == null) return;
-      if (worker) {
-        void chartRef.current.updateAsync(data, worker);
-      } else {
-        chartRef.current.update(data);
-      }
-    // chartRef is a stable mutable ref, excluded intentionally
+      if (!container2DRef.current) return;
+      const chart = new ScatterChartCore(container2DRef.current, optsRef.current as unknown as Record<string, unknown>);
+      chart2DRef.current = chart;
+      return () => { chart.destroy(); chart2DRef.current = null; };
+    }, []);
+
+    // Create 3D chart on mount (only if enable3D)
+    useEffect(() => {
+      if (!can3D || !container3DRef.current) return;
+      const chart = new Scatter3DViewCore(container3DRef.current, {
+        pointSize: optsRef.current.pointSize,
+        opacity: optsRef.current.opacity,
+      });
+      chart3DRef.current = chart;
+      return () => { chart.destroy(); chart3DRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data, worker]);
+    }, [can3D]);
+
+    // Update 2D data
+    useEffect(() => {
+      if (!chart2DRef.current || data == null || is3D) return;
+      if (worker) {
+        void chart2DRef.current.updateAsync(data, worker);
+      } else {
+        chart2DRef.current.update(data);
+      }
+    }, [data, worker, is3D]);
+
+    // Update 3D data
+    useEffect(() => {
+      if (!chart3DRef.current || data == null || !z || !is3D) return;
+      const data3D: Scatter3DData = { x: data.x, y: data.y, z, labels: data.labels, colors: data.colors };
+      chart3DRef.current.setData(data3D);
+    }, [data, z, is3D]);
+
+    // When toggling, the previously-hidden container has a stale canvas size.
+    // Force a resize + data re-upload so the chart renders correctly.
+    useEffect(() => {
+      // Wait for display:block to take effect
+      requestAnimationFrame(() => {
+        if (is3D) {
+          if (chart3DRef.current && data && z) {
+            chart3DRef.current.resize();
+            chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
+          }
+        } else {
+          if (chart2DRef.current && data) {
+            chart2DRef.current.resize();
+            chart2DRef.current.update(data);
+          }
+        }
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [is3D]);
+
+    const toggle3D = useCallback(() => {
+      if (!can3D) return;
+      setIs3D(prev => !prev);
+    }, [can3D]);
 
     useImperativeHandle(ref, () => ({
-      get instance() { return chartRef.current; },
+      get instance() { return chart2DRef.current; },
+      get instance3D() { return chart3DRef.current; },
+      get is3D() { return is3D; },
+      toggle3D,
       hitTest(x: number, y: number) {
-        return chartRef.current?.hitTest(x, y) ?? null;
+        return chart2DRef.current?.hitTest(x, y) ?? null;
       },
     }));
 
     return (
       <div
-        ref={containerRef}
+        ref={wrapperRef}
         className={className}
-        style={{ width: '100%', height: '100%', ...style }}
-      />
+        style={{ width: '100%', height: '100%', position: 'relative', ...style }}
+      >
+        {/* 2D chart container */}
+        <div
+          ref={container2DRef}
+          style={{
+            position: 'absolute', inset: 0,
+            display: is3D ? 'none' : 'block',
+          }}
+        />
+
+        {/* 3D chart container */}
+        {can3D && (
+          <div
+            ref={container3DRef}
+            style={{
+              position: 'absolute', inset: 0,
+              display: is3D ? 'block' : 'none',
+            }}
+          />
+        )}
+
+        {/* 3D toggle button */}
+        {can3D && (
+          <button
+            type="button"
+            onClick={toggle3D}
+            title={is3D ? 'Switch to 2D' : 'Switch to 3D'}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 20,
+              padding: '6px 12px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 6,
+              background: is3D ? 'rgba(59,130,246,0.3)' : 'rgba(20,20,20,0.82)',
+              color: is3D ? '#93d2ff' : 'rgba(200,200,200,0.75)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              backdropFilter: 'blur(6px)',
+              transition: 'all 0.15s',
+            }}
+          >
+            {is3D ? '2D' : '3D'}
+          </button>
+        )}
+      </div>
     );
   },
 );

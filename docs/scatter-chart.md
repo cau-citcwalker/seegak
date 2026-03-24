@@ -7,10 +7,14 @@ High-performance scatter plot built on WebGL2. Ideal for UMAP/tSNE cluster visua
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `data` | `ScatterData` | - | Chart data |
+| `z` | `Float32Array` | - | Z coordinates for 3D mode |
+| `enable3D` | `boolean` | `false` | Show 2D/3D toggle button (requires `z`) |
+| `initial3D` | `boolean` | `false` | Start in 3D mode |
 | `pointSize` | `number` | `5` | Point size (px) |
 | `opacity` | `number` | `0.9` | Point opacity (0–1) |
 | `colorScale` | `ColorScale` | `VIRIDIS` | Color scale used when `values` is provided |
 | `autoFit` | `boolean` | `true` | Auto-zoom to fit data range |
+| `toolbarPreset` | `ToolPreset` | - | Toolbar preset: `'full'`, `'standard'`, or `'minimal'` |
 | `style` | `CSSProperties` | - | Container style |
 | `className` | `string` | - | Container CSS class |
 
@@ -74,6 +78,90 @@ function ExpressionPlot() {
     </div>
   );
 }
+```
+
+## 3D Mode
+
+ScatterChart supports an integrated 3D mode for visualizing 3D UMAP/tSNE/PCA embeddings. Pass `z` coordinates and set `enable3D` to show a 2D/3D toggle button.
+
+```tsx
+import { ScatterChart } from '@seegak/react';
+
+function UMAP3D() {
+  const data = {
+    x: new Float32Array(umapX),
+    y: new Float32Array(umapY),
+    labels: cellTypes,
+  };
+  const z = new Float32Array(umapZ);
+
+  return (
+    <div style={{ width: 800, height: 600 }}>
+      <ScatterChart data={data} z={z} enable3D pointSize={4} />
+    </div>
+  );
+}
+```
+
+- A **2D / 3D** toggle button appears in the top-right corner
+- To start in 3D mode, add `initial3D`
+- Switching is instant — both chart instances are pre-created
+
+### 3D Controls
+
+| Input | Action |
+|---|---|
+| Left-drag | Rotate |
+| Right-drag / Shift+drag | Pan |
+| Scroll | Zoom |
+| `F` | Toggle 2D/3D |
+| `R` | Reset camera |
+
+### 3D Ref API
+
+```tsx
+const chartRef = useRef<ScatterChartHandle>(null);
+
+// Check current mode
+chartRef.current?.is3D;         // boolean
+
+// Toggle programmatically
+chartRef.current?.toggle3D();
+
+// Access the underlying 3D chart instance
+chartRef.current?.instance3D;   // Scatter3DViewCore | null
+```
+
+## Toolbar Presets
+
+Control which tools appear in the toolbar:
+
+```tsx
+// All tools + PNG/SVG export
+<ScatterChart data={data} toolbarPreset="full" />
+
+// Pan, box-select, lasso, eraser + PNG export (default)
+<ScatterChart data={data} toolbarPreset="standard" />
+
+// Pan only
+<ScatterChart data={data} toolbarPreset="minimal" />
+
+// Custom selection
+<ScatterChart data={data} tools={['pan', 'lasso']} actions={['save-png']} />
+```
+
+## Image Export
+
+All charts have built-in export methods accessible via ref:
+
+```tsx
+const chartRef = useRef<ScatterChartHandle>(null);
+
+// Download as PNG (2x resolution by default)
+chartRef.current?.instance?.exportPNG('my-umap');
+
+// Download as SVG
+chartRef.current?.instance?.exportSVG('my-umap');
 ```
 
 ## Ref API
