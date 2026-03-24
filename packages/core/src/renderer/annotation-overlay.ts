@@ -39,15 +39,18 @@ export class AnnotationOverlay {
   private ctx: CanvasRenderingContext2D;
 
   private annotations: Annotation[] = [];
-  /** World-space points being drawn */
+  /** Points being drawn (world-space if interactive, CSS-space if not) */
   private currentPoints: Vec2[] = [];
   private isDrawing = false;
-  /** World-space line start point */
+  /** Line start point */
   private lineStart: Vec2 | null = null;
   private _tool: ToolType = 'pan';
 
   private selectCallbacks: Array<(e: SelectionEvent) => void> = [];
   private engine: RenderEngine;
+
+  /** When false, annotations are stored in CSS-space and don't follow camera */
+  private _interactive = true;
 
   // Camera polling to redraw annotations when InteractionHandler pans
   private lastCamZoom = 0;
@@ -59,8 +62,9 @@ export class AnnotationOverlay {
   private static readonly MIN_DIST_SQ = 16; // 4px minimum distance
   private lastAddedCSS: Vec2 | null = null;
 
-  constructor(container: HTMLElement, engine: RenderEngine) {
+  constructor(container: HTMLElement, engine: RenderEngine, interactive = true) {
     this.engine = engine;
+    this._interactive = interactive;
 
     this.canvas = document.createElement('canvas');
     this.canvas.style.cssText = [
@@ -156,8 +160,9 @@ export class AnnotationOverlay {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
 
-  /** CSS pixel → world space */
-  private cssToWorld(css: Vec2): Vec2 {
+  /** CSS pixel → storage space (world if interactive, CSS if not) */
+  private cssToStorage(css: Vec2): Vec2 {
+    if (!this._interactive) return { x: css.x, y: css.y };
     const pr = this.engine.viewport.pixelRatio;
     return screenToWorld(
       { x: css.x * pr, y: css.y * pr },
@@ -166,8 +171,9 @@ export class AnnotationOverlay {
     );
   }
 
-  /** World space → CSS pixel */
-  private worldToCSS(w: Vec2): Vec2 {
+  /** Storage space → CSS pixel */
+  private storageToCSS(w: Vec2): Vec2 {
+    if (!this._interactive) return { x: w.x, y: w.y };
     const pr = this.engine.viewport.pixelRatio;
     const dev = worldToScreen(w, this.engine.viewport, this.engine.camera);
     return { x: dev.x / pr, y: dev.y / pr };
@@ -193,7 +199,7 @@ export class AnnotationOverlay {
       return;
     }
 
-    const world = this.cssToWorld(css);
+    const world = this.cssToStorage(css);
 
     if (this._tool === 'line') {
       if (!this.lineStart) {
@@ -226,11 +232,11 @@ export class AnnotationOverlay {
       return;
     }
 
-    const world = this.cssToWorld(css);
+    const world = this.cssToStorage(css);
 
     if (this._tool === 'line' && this.lineStart) {
       this.redraw();
-      this.drawLinePreview(this.worldToCSS(this.lineStart), css);
+      this.drawLinePreview(this.storageToCSS(this.lineStart), css);
       return;
     }
 
@@ -272,7 +278,7 @@ export class AnnotationOverlay {
       this.currentPoints = [];
       this.redraw();
     } else if (this._tool === 'box-select') {
-      const startCSS = this.currentPoints[0] ? this.worldToCSS(this.currentPoints[0]) : css;
+      const startCSS = this.currentPoints[0] ? this.storageToCSS(this.currentPoints[0]) : css;
       const x = Math.min(startCSS.x, css.x);
       const y = Math.min(startCSS.y, css.y);
       const width = Math.abs(css.x - startCSS.x);
@@ -284,7 +290,7 @@ export class AnnotationOverlay {
       }
     } else if (this._tool === 'lasso') {
       // Convert world points to CSS px for the selection event
-      const pts = this.currentPoints.map(w => this.worldToCSS(w));
+      const pts = this.currentPoints.map(w => this.storageToCSS(w));
       this.currentPoints = [];
       this.redraw();
       if (pts.length > 4) {
@@ -324,10 +330,10 @@ export class AnnotationOverlay {
     ctx.lineJoin = 'round';
     ctx.setLineDash([]);
     ctx.beginPath();
-    const p0 = this.worldToCSS(ann.points[0]);
+    const p0 = this.storageToCSS(ann.points[0]);
     ctx.moveTo(p0.x, p0.y);
     for (let i = 1; i < ann.points.length; i++) {
-      const p = this.worldToCSS(ann.points[i]);
+      const p = this.storageToCSS(ann.points[i]);
       ctx.lineTo(p.x, p.y);
     }
     ctx.stroke();
@@ -343,10 +349,10 @@ export class AnnotationOverlay {
     ctx.lineJoin = 'round';
     ctx.setLineDash([]);
     ctx.beginPath();
-    const p0 = this.worldToCSS(pts[0]);
+    const p0 = this.storageToCSS(pts[0]);
     ctx.moveTo(p0.x, p0.y);
     for (let i = 1; i < pts.length; i++) {
-      const p = this.worldToCSS(pts[i]);
+      const p = this.storageToCSS(pts[i]);
       ctx.lineTo(p.x, p.y);
     }
     ctx.stroke();
@@ -369,8 +375,8 @@ export class AnnotationOverlay {
 
   private drawBoxPreview(): void {
     if (this.currentPoints.length < 2) return;
-    const start = this.worldToCSS(this.currentPoints[0]);
-    const end = this.worldToCSS(this.currentPoints[this.currentPoints.length - 1]);
+    const start = this.storageToCSS(this.currentPoints[0]);
+    const end = this.storageToCSS(this.currentPoints[this.currentPoints.length - 1]);
     const x = Math.min(start.x, end.x);
     const y = Math.min(start.y, end.y);
     const w = Math.abs(end.x - start.x);
@@ -407,7 +413,7 @@ export class AnnotationOverlay {
     const r = this.ERASER_RADIUS;
     const before = this.annotations.length;
     this.annotations = this.annotations.filter(ann => {
-      const cssPts = ann.points.map(w => this.worldToCSS(w));
+      const cssPts = ann.points.map(w => this.storageToCSS(w));
       for (let i = 0; i < cssPts.length - 1; i++) {
         if (this.pointToSegmentDist(p, cssPts[i], cssPts[i + 1]) <= r) return false;
       }
@@ -441,10 +447,10 @@ export class AnnotationOverlay {
     ctx.setLineDash([4, 3]);
     ctx.fillStyle = 'rgba(167,139,250,0.08)';
     ctx.beginPath();
-    const p0 = this.worldToCSS(pts[0]);
+    const p0 = this.storageToCSS(pts[0]);
     ctx.moveTo(p0.x, p0.y);
     for (let i = 1; i < pts.length; i++) {
-      const p = this.worldToCSS(pts[i]);
+      const p = this.storageToCSS(pts[i]);
       ctx.lineTo(p.x, p.y);
     }
     ctx.closePath();

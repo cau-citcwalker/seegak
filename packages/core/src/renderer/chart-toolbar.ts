@@ -2,9 +2,27 @@
 
 export type ToolType = 'pan' | 'draw' | 'line' | 'box-select' | 'lasso' | 'eraser';
 
+/** Action buttons (non-toggle, fire-and-forget) */
+export type ActionType = 'save-png' | 'save-svg';
+
+/** Preset tool sets */
+export type ToolPreset = 'full' | 'standard' | 'minimal';
+
+const PRESET_TOOLS: Record<ToolPreset, ToolType[]> = {
+  full:     ['pan', 'draw', 'line', 'box-select', 'lasso', 'eraser'],
+  standard: ['pan', 'box-select', 'lasso', 'eraser'],
+  minimal:  ['pan'],
+};
+
+const PRESET_ACTIONS: Record<ToolPreset, ActionType[]> = {
+  full:     ['save-png', 'save-svg'],
+  standard: ['save-png'],
+  minimal:  [],
+};
+
 // ─── Icons (inline SVG) ───
 
-const ICONS: Record<ToolType, string> = {
+const ICONS: Record<ToolType | ActionType, string> = {
   pan: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <path d="M10 2v16M2 10h16"/>
     <path d="M6.5 6.5L3 10l3.5 3.5M13.5 6.5L17 10l-3.5 3.5"/>
@@ -36,21 +54,41 @@ const ICONS: Record<ToolType, string> = {
     <path d="M5.5 17L3 14.5l7-7 5 5-4.5 4.5"/>
     <path d="M10 7.5l2.5-2.5 5 5-2.5 2.5"/>
   </svg>`,
+
+  'save-png': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2"/>
+    <path d="M10 3v10"/>
+    <path d="M6.5 9.5L10 13l3.5-3.5"/>
+  </svg>`,
+
+  'save-svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 14v2a1 1 0 001 1h12a1 1 0 001-1v-2"/>
+    <path d="M10 3v10"/>
+    <path d="M6.5 9.5L10 13l3.5-3.5"/>
+    <text x="14" y="8" font-size="5" fill="currentColor" stroke="none" font-weight="bold">S</text>
+  </svg>`,
 };
 
-const LABELS: Record<ToolType, string> = {
-  pan: '이동',
-  draw: '그리기',
-  line: '선',
-  'box-select': '박스 선택',
-  lasso: '올가미',
-  eraser: '지우개',
+const LABELS: Record<ToolType | ActionType, string> = {
+  pan: 'Pan',
+  draw: 'Draw',
+  line: 'Line',
+  'box-select': 'Box Select',
+  lasso: 'Lasso',
+  eraser: 'Eraser',
+  'save-png': 'Save PNG',
+  'save-svg': 'Save SVG',
 };
 
 // ─── ChartToolbar ───
 
 export interface ChartToolbarOptions {
+  /** Preset: 'full' | 'standard' | 'minimal', or omit to use custom tools */
+  preset?: ToolPreset;
+  /** Custom tool list (ignored when preset is set) */
   tools?: ToolType[];
+  /** Custom action list (ignored when preset is set) */
+  actions?: ActionType[];
   defaultTool?: ToolType;
   position?: 'top-left' | 'top-right';
 }
@@ -60,6 +98,7 @@ export class ChartToolbar {
   private buttons = new Map<ToolType, HTMLButtonElement>();
   private _activeTool: ToolType;
   private onChange: (tool: ToolType) => void;
+  private onAction: ((action: ActionType) => void) | null = null;
 
   // Drag state
   private isDragging = false;
@@ -70,10 +109,22 @@ export class ChartToolbar {
     container: HTMLElement,
     options: ChartToolbarOptions = {},
     onChange: (tool: ToolType) => void,
+    onAction?: (action: ActionType) => void,
   ) {
-    const tools = options.tools ?? ['pan', 'draw', 'line', 'box-select', 'lasso', 'eraser'];
+    let tools: ToolType[];
+    let actions: ActionType[];
+
+    if (options.preset) {
+      tools = PRESET_TOOLS[options.preset];
+      actions = PRESET_ACTIONS[options.preset];
+    } else {
+      tools = options.tools ?? PRESET_TOOLS.standard;
+      actions = options.actions ?? PRESET_ACTIONS.standard;
+    }
+
     this._activeTool = options.defaultTool ?? 'pan';
     this.onChange = onChange;
+    this.onAction = onAction ?? null;
 
     this.el = document.createElement('div');
     const pos = options.position ?? 'top-left';
@@ -107,43 +158,35 @@ export class ChartToolbar {
       'line-height:1',
     ].join(';');
     handle.textContent = '⠿⠿';
-    handle.title = '드래그하여 이동';
+    handle.title = 'Drag to move';
     handle.addEventListener('mousedown', this.onDragStart);
     this.el.appendChild(handle);
 
+    // ─── Tool buttons (toggle) ───
     for (const tool of tools) {
-      const btn = document.createElement('button');
-      btn.innerHTML = ICONS[tool];
-      btn.title = LABELS[tool];
-      btn.dataset.tool = tool;
-      btn.style.cssText = [
-        'width:28px',
-        'height:28px',
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'border:none',
-        'border-radius:4px',
-        'cursor:pointer',
-        'background:transparent',
-        'color:rgba(200,200,200,0.75)',
-        'padding:4px',
-        'transition:background 0.12s,color 0.12s',
-        'flex-shrink:0',
-      ].join(';');
-
-      btn.addEventListener('mouseenter', () => {
-        if (this._activeTool !== tool) btn.style.background = 'rgba(255,255,255,0.08)';
-      });
-      btn.addEventListener('mouseleave', () => {
-        if (this._activeTool !== tool) btn.style.background = 'transparent';
-      });
+      const btn = this.makeButton(ICONS[tool], LABELS[tool]);
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         this.setTool(tool);
       });
-
       this.buttons.set(tool, btn);
+      this.el.appendChild(btn);
+    }
+
+    // ─── Separator ───
+    if (actions.length > 0) {
+      const sep = document.createElement('div');
+      sep.style.cssText = 'height:1px;background:rgba(255,255,255,0.1);margin:2px 4px;';
+      this.el.appendChild(sep);
+    }
+
+    // ─── Action buttons (fire-and-forget) ───
+    for (const action of actions) {
+      const btn = this.makeButton(ICONS[action], LABELS[action]);
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.onAction?.(action);
+      });
       this.el.appendChild(btn);
     }
 
@@ -193,6 +236,40 @@ export class ChartToolbar {
     document.removeEventListener('mousemove', this.onDragMove);
     document.removeEventListener('mouseup', this.onDragEnd);
   };
+
+  private makeButton(icon: string, title: string): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.innerHTML = icon;
+    btn.title = title;
+    btn.style.cssText = [
+      'width:28px',
+      'height:28px',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'border:none',
+      'border-radius:4px',
+      'cursor:pointer',
+      'background:transparent',
+      'color:rgba(200,200,200,0.75)',
+      'padding:4px',
+      'transition:background 0.12s,color 0.12s',
+      'flex-shrink:0',
+    ].join(';');
+
+    btn.addEventListener('mouseenter', () => {
+      if (!this.buttons.has(btn.dataset.tool as ToolType) || this._activeTool !== btn.dataset.tool) {
+        btn.style.background = 'rgba(255,255,255,0.08)';
+      }
+    });
+    btn.addEventListener('mouseleave', () => {
+      if (!this.buttons.has(btn.dataset.tool as ToolType) || this._activeTool !== btn.dataset.tool) {
+        btn.style.background = 'transparent';
+      }
+    });
+
+    return btn;
+  }
 
   private applyStyles(): void {
     for (const [tool, btn] of this.buttons) {

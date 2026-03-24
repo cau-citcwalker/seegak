@@ -43,7 +43,7 @@ export type { TooltipContent, TooltipRow, TooltipOptions } from './renderer/tool
 
 // Toolbar & Annotation
 export { ChartToolbar } from './renderer/chart-toolbar.js';
-export type { ToolType, ChartToolbarOptions } from './renderer/chart-toolbar.js';
+export type { ToolType, ActionType, ToolPreset, ChartToolbarOptions } from './renderer/chart-toolbar.js';
 export { AnnotationOverlay } from './renderer/annotation-overlay.js';
 export type { SelectionEvent, BoxSelectEvent, LassoSelectEvent } from './renderer/annotation-overlay.js';
 

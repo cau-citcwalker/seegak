@@ -81,6 +81,7 @@ class FeatureLayer implements RenderLayer {
   id = 'feature';
   order = 10;
   pointCount = 0;
+  basePointSize = 5;
 
   render(engine: RenderEngine, state: RenderState): void {
     if (this.pointCount === 0) return;
@@ -94,6 +95,11 @@ class FeatureLayer implements RenderLayer {
       type: 'mat4',
       value: cameraMatrix(state.viewport, state.camera),
     });
+
+    // Scale point size with zoom so points don't vanish when zoomed in
+    const zoomScale = Math.max(1.0, Math.sqrt(state.camera.zoom));
+    const scaledSize = this.basePointSize * zoomScale;
+    shader.setUniform('u_pointSize', { type: 'float', value: scaledSize });
 
     const posBuf = engine.buffers.get('feature_positions');
     if (!posBuf) return;
@@ -150,10 +156,10 @@ export class FeaturePlotChart extends BaseChart {
 
     const shader = this.engine.getShader('feature')!;
     shader.use();
-    shader.setUniform('u_pointSize', { type: 'float', value: this.opts.pointSize });
     shader.setUniform('u_opacity', { type: 'float', value: this.opts.opacity });
 
     this.layer = new FeatureLayer();
+    this.layer.basePointSize = this.opts.pointSize;
     this.engine.addLayer(this.layer);
 
     this.tooltip = new Tooltip(container);
@@ -200,12 +206,12 @@ export class FeaturePlotChart extends BaseChart {
     const normExpr = (rawExpr - this.exprMin) / (this.exprMax - this.exprMin || 1);
 
     this.tooltip.show(sx, sy, {
-      title: data.geneName ? `${data.geneName}` : '유전자 발현',
+      title: data.geneName ? `${data.geneName}` : 'Gene Expression',
       rows: [
-        { label: 'UMAP 1',    value: data.x[idx].toFixed(4) },
-        { label: 'UMAP 2',    value: data.y[idx].toFixed(4) },
-        { label: '발현값',     value: rawExpr.toFixed(4) },
-        { label: '정규화',     value: `${(normExpr * 100).toFixed(1)}%` },
+        { label: 'UMAP 1',       value: data.x[idx].toFixed(4) },
+        { label: 'UMAP 2',       value: data.y[idx].toFixed(4) },
+        { label: 'Expression',   value: rawExpr.toFixed(4) },
+        { label: 'Normalized',   value: `${(normExpr * 100).toFixed(1)}%` },
       ],
     });
   }
