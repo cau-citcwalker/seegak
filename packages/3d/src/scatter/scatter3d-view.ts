@@ -117,10 +117,13 @@ export class Scatter3DView extends BaseChart {
         },
         (focusLabel: string | null) => {
           if (focusLabel) {
-            // Focus: hide all except this one
-            for (const e of entries) {
-              if (e.label !== focusLabel) this.hiddenClusters.add(e.label);
-              else this.hiddenClusters.delete(e.label);
+            // Focus: hide all except this one — read labels from current data
+            const allLabels = this.currentData?.labels
+              ? new Set(this.currentData.labels)
+              : new Set<string>();
+            for (const lbl of allLabels) {
+              if (lbl !== focusLabel) this.hiddenClusters.add(lbl);
+              else this.hiddenClusters.delete(lbl);
             }
           } else {
             this.hiddenClusters.clear();
