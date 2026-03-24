@@ -212,6 +212,7 @@ export class DotPlotChart extends BaseChart {
   // ─── Update ───
 
   update(data: DotPlotData): void {
+    this.storeData(data);
     this.currentData = data;
     const { genes, clusters, meanExpression, fractionExpressing } = data;
     const G = genes.length;

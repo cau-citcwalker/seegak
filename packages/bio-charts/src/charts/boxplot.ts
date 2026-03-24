@@ -238,6 +238,7 @@ export class BoxPlotChart extends BaseChart {
   }
 
   update(data: BoxPlotData): void {
+    this.storeData(data);
     this.currentData = data;
     this.currentStats = data.groups.map(g => g.stats ?? computeStats(g.values));
     this.rebuild();

@@ -180,6 +180,7 @@ export class BarChart extends BaseChart {
   }
 
   update(data: BarChartData): void {
+    this.storeData(data);
     this.currentData = data;
     const isVertical = (data.orientation ?? 'vertical') === 'vertical';
     const area = this.plotArea;

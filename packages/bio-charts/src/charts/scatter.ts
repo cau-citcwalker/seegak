@@ -520,6 +520,7 @@ export class ScatterChart extends BaseChart {
   // ─── Data Update ───
 
   update(data: ScatterData): void {
+    this.storeData(data);
     this.currentData = data;
     const n = data.x.length;
     const dx = data.x;

@@ -28,6 +28,7 @@ export class RenderEngine {
   private animationFrameId: number = 0;
   private running = false;
   private frameCount = 0;
+  private resizeCallbacks: Array<(w: number, h: number) => void> = [];
 
   viewport: Viewport = { x: 0, y: 0, width: 0, height: 0, pixelRatio: 1 };
   camera: Camera = { center: { x: 0, y: 0 }, zoom: 1 };
@@ -86,6 +87,9 @@ export class RenderEngine {
     for (const layer of this.layers) {
       layer.resize?.(w, h);
     }
+
+    // Notify resize subscribers (e.g. BaseChart re-renders text/labels)
+    for (const cb of this.resizeCallbacks) cb(w, h);
 
     // Re-render if not in animation loop
     if (!this.running) {
@@ -178,6 +182,15 @@ export class RenderEngine {
   requestRender(): void {
     if (this.running) return; // loop handles it
     requestAnimationFrame(this.renderFrame);
+  }
+
+  /** Register a callback for canvas resize events */
+  onResize(cb: (w: number, h: number) => void): () => void {
+    this.resizeCallbacks.push(cb);
+    return () => {
+      const i = this.resizeCallbacks.indexOf(cb);
+      if (i !== -1) this.resizeCallbacks.splice(i, 1);
+    };
   }
 
   // ─── Cleanup ───
