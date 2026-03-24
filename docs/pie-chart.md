@@ -9,6 +9,8 @@ Visualizes proportions and composition as a pie chart. Also supports donut chart
 | `data` | `PieChartData` | - | Chart data |
 | `showLabels` | `boolean` | `false` | Whether to show labels |
 | `showPercentage` | `boolean` | `false` | Whether to show percentages |
+| `groupThreshold` | `number` | `2` | Slices below this % are merged into "Others" |
+| `labelThreshold` | `number` | `3` | Labels are hidden for slices below this % |
 | `style` | `CSSProperties` | - | Container style |
 | `className` | `string` | - | Container CSS class |
 
@@ -65,3 +67,28 @@ const data = {
 
 <PieChart data={data} showLabels showPercentage />
 ```
+
+## Small Slice Grouping
+
+When a dataset has many categories (e.g. 160 cell types), small slices make the chart unreadable with overlapping labels. Seegak automatically handles this:
+
+- **Grouping**: Slices below `groupThreshold` (default 2%) are merged into a single "Others" slice
+- **Label hiding**: Labels are hidden for slices below `labelThreshold` (default 3%) — hover to see details
+
+Both thresholds are configurable:
+
+```tsx
+// Custom thresholds
+<PieChart
+  data={data}
+  showLabels
+  showPercentage
+  groupThreshold={3}   // Merge slices below 3%
+  labelThreshold={5}   // Hide labels below 5%
+/>
+
+// Disable grouping (show all slices)
+<PieChart data={data} groupThreshold={0} labelThreshold={0} />
+```
+
+Tooltip hover still works for all slices, including "Others".
