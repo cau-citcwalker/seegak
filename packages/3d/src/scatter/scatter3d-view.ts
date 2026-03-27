@@ -202,9 +202,6 @@ export class Scatter3DView extends BaseChart {
   private attachInteraction(): void {
     const canvas = this.engine.gl.canvas as HTMLCanvasElement;
     canvas.addEventListener('mousedown', this.onMouseDown);
-    canvas.addEventListener('mousemove', this.onMouseMove);
-    canvas.addEventListener('mouseup', this.onMouseUp);
-    canvas.addEventListener('mouseleave', this.onMouseUp);
     canvas.addEventListener('wheel', this.onWheel, { passive: false });
     canvas.addEventListener('keydown', this.onKeyDown);
     canvas.addEventListener('touchstart', this.onTouchStart, { passive: false });
@@ -217,14 +214,14 @@ export class Scatter3DView extends BaseChart {
   private detachInteraction(): void {
     const canvas = this.engine.gl.canvas as HTMLCanvasElement;
     canvas.removeEventListener('mousedown', this.onMouseDown);
-    canvas.removeEventListener('mousemove', this.onMouseMove);
-    canvas.removeEventListener('mouseup', this.onMouseUp);
-    canvas.removeEventListener('mouseleave', this.onMouseUp);
     canvas.removeEventListener('wheel', this.onWheel);
     canvas.removeEventListener('keydown', this.onKeyDown);
     canvas.removeEventListener('touchstart', this.onTouchStart);
     canvas.removeEventListener('touchmove', this.onTouchMove);
     canvas.removeEventListener('touchend', this.onTouchEnd);
+    // Clean up window listeners in case drag is still active
+    window.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('mouseup', this.onMouseUp);
   }
 
   private readonly onMouseDown = (e: MouseEvent): void => {
@@ -234,6 +231,9 @@ export class Scatter3DView extends BaseChart {
     this.lastX = e.clientX;
     this.lastY = e.clientY;
     (e.currentTarget as HTMLElement).focus?.();
+    // Listen on window so dragging outside the canvas still works
+    window.addEventListener('mousemove', this.onMouseMove);
+    window.addEventListener('mouseup', this.onMouseUp);
   };
 
   private readonly onMouseMove = (e: MouseEvent): void => {
@@ -254,7 +254,11 @@ export class Scatter3DView extends BaseChart {
     this.engine.requestRender();
   };
 
-  private readonly onMouseUp = (): void => { this.pointerDown = false; };
+  private readonly onMouseUp = (): void => {
+    this.pointerDown = false;
+    window.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('mouseup', this.onMouseUp);
+  };
 
   private readonly onWheel = (e: WheelEvent): void => {
     e.preventDefault();
