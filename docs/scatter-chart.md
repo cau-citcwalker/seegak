@@ -14,6 +14,7 @@ High-performance scatter plot built on WebGL2. Ideal for UMAP/tSNE cluster visua
 | `opacity` | `number` | `0.9` | Point opacity (0–1) |
 | `colorScale` | `ColorScale` | `VIRIDIS` | Color scale used when `values` is provided |
 | `autoFit` | `boolean` | `true` | Auto-zoom to fit data range |
+| `outsideDrag` | `boolean` | `false` | Allow drag to continue when cursor leaves the chart area |
 | `toolbarPreset` | `ToolPreset` | - | Toolbar preset: `'full'`, `'standard'`, or `'minimal'` |
 | `style` | `CSSProperties` | - | Container style |
 | `className` | `string` | - | Container CSS class |
