@@ -108,6 +108,14 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
         if (d && zz) {
           chart.setData({ x: d.x, y: d.y, z: zz, labels: d.labels, colors: d.colors });
         }
+        // Force render after layout settles — fixes blank screen on 2D→3D toggle
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (chart3DRef.current === chart) {
+              chart.forceRender();
+            }
+          });
+        });
       } else {
         const chart = new ScatterChartCore(containerRef.current, optsRef.current as unknown as Record<string, unknown>);
         chart2DRef.current = chart;
