@@ -172,6 +172,12 @@ export class Scatter3DView extends BaseChart {
     return this.layer.getLabelColors(this.currentData);
   }
 
+  /** Force a resize + re-render. Useful after container becomes visible. */
+  forceRender(): void {
+    this.updateMatrices();
+    this.engine.requestRender();
+  }
+
   override resetCamera(): void {
     this.arcball.reset();
     if (this.currentData) {
