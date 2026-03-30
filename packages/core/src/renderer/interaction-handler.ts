@@ -9,6 +9,7 @@ export class InteractionHandler {
   private isDragging = false;
   private lastMouse: Vec2 = { x: 0, y: 0 };
   private isPanning = false;
+  private _outsideDrag = false;
 
   constructor(private engine: RenderEngine) {
     const canvas = engine.gl.canvas as HTMLCanvasElement;
@@ -24,6 +25,10 @@ export class InteractionHandler {
     canvas.addEventListener('touchmove', this.onTouchMove, { passive: false });
     canvas.addEventListener('touchend', this.onTouchEnd);
   }
+
+  /** Allow drag to continue when cursor leaves the canvas */
+  set outsideDrag(v: boolean) { this._outsideDrag = v; }
+  get outsideDrag(): boolean { return this._outsideDrag; }
 
   onInteraction(cb: InteractionCallback): () => void {
     this.callbacks.push(cb);
@@ -65,6 +70,11 @@ export class InteractionHandler {
       //  In pan mode the overlay has pointerEvents:none so events fall through.)
       this.isPanning = true;
     }
+
+    if (this._outsideDrag) {
+      window.addEventListener('mousemove', this.onMouseMove);
+      window.addEventListener('mouseup', this.onMouseUp);
+    }
   };
 
   private onMouseMove = (e: MouseEvent): void => {
@@ -105,6 +115,11 @@ export class InteractionHandler {
 
     this.isDragging = false;
     this.isPanning = false;
+
+    if (this._outsideDrag) {
+      window.removeEventListener('mousemove', this.onMouseMove);
+      window.removeEventListener('mouseup', this.onMouseUp);
+    }
   };
 
   private onWheel = (e: WheelEvent): void => {
@@ -174,6 +189,9 @@ export class InteractionHandler {
     canvas.removeEventListener('touchstart', this.onTouchStart);
     canvas.removeEventListener('touchmove', this.onTouchMove);
     canvas.removeEventListener('touchend', this.onTouchEnd);
+    // Clean up window listeners if outsideDrag was active
+    window.removeEventListener('mousemove', this.onMouseMove);
+    window.removeEventListener('mouseup', this.onMouseUp);
     this.callbacks = [];
   }
 }

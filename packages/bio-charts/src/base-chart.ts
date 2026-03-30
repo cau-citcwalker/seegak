@@ -42,6 +42,8 @@ export interface BaseChartOptions {
    * Set to false to hide all axis text (minimal margins applied automatically).
    */
   axes?: boolean;
+  /** Allow drag to continue when cursor leaves the chart area. Default: false */
+  outsideDrag?: boolean;
 }
 
 const DEFAULT_MARGIN: ChartMargin = { top: 40, right: 20, bottom: 60, left: 80 };
@@ -88,6 +90,7 @@ export abstract class BaseChart {
 
     if (options.interactive !== false) {
       this.interaction = new InteractionHandler(this.engine);
+      if (options.outsideDrag) this.interaction.outsideDrag = true;
     }
 
     // Toolbar
