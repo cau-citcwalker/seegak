@@ -275,6 +275,9 @@ export class ScatterChart extends BaseChart {
       this.attachHoverHandler();
     }
 
+    // Point size slider (floating, bottom-left)
+    this.pointSizeSlider = this.createPointSizeSlider(container);
+
     // Selection via toolbar box/lasso tools
     if (options.onSelectPoints) {
       const cb = options.onSelectPoints;
@@ -283,6 +286,35 @@ export class ScatterChart extends BaseChart {
         cb({ indices, type: e.type });
       });
     }
+  }
+
+  // ─── Point Size Slider ───
+
+  private pointSizeSlider: HTMLElement | null = null;
+
+  private createPointSizeSlider(container: HTMLElement): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:absolute;bottom:8px;left:52px;z-index:15;display:flex;align-items:center;gap:6px;background:rgba(20,20,20,0.82);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 10px;backdrop-filter:blur(6px);';
+
+    const label = document.createElement('span');
+    label.textContent = 'Size';
+    label.style.cssText = 'color:rgba(200,200,200,0.7);font-size:11px;font-weight:600;';
+    wrap.appendChild(label);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '1';
+    slider.max = '20';
+    slider.step = '0.5';
+    slider.value = String(this.opts.pointSize);
+    slider.style.cssText = 'width:80px;accent-color:#e11d6d;cursor:pointer;';
+    slider.addEventListener('input', () => {
+      this.setPointSize(parseFloat(slider.value));
+    });
+    wrap.appendChild(slider);
+
+    container.appendChild(wrap);
+    return wrap;
   }
 
   // ─── Selection Hit Testing ───
@@ -856,6 +888,7 @@ export class ScatterChart extends BaseChart {
   }
 
   destroy(): void {
+    this.pointSizeSlider?.remove();
     this.hullOverlay?.destroy();
     this.cellLegend?.destroy();
     this.tooltip?.destroy();
