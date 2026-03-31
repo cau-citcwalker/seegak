@@ -117,7 +117,7 @@ export class GridLayer implements RenderLayer {
     this.shader.setUniform('u_projection', { type: 'mat4', value: proj });
     this.shader.setUniform('u_color', {
       type: 'vec4',
-      value: { r: this.color[0], g: this.color[1], b: this.color[2], a: this.color[3] },
+      value: [this.color[0], this.color[1], this.color[2], this.color[3]],
     });
 
     gl.bindVertexArray(this.vao);
