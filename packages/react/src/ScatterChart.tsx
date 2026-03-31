@@ -152,7 +152,7 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
           return;
         }
         if (chart3DRef.current) {
-          chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
+          chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors, values: data.values });
         }
       } else {
         if (chart2DRef.current) {

@@ -120,9 +120,12 @@ export class GridLayer implements RenderLayer {
       value: [this.color[0], this.color[1], this.color[2], this.color[3]],
     });
 
+    // Disable depth test so grid is always visible behind scatter points
+    gl.disable(gl.DEPTH_TEST);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.LINES, 0, this.vertexCount);
     gl.bindVertexArray(null);
+    gl.enable(gl.DEPTH_TEST);
   }
 
   /** Return the current grid step for scale bar rendering */
