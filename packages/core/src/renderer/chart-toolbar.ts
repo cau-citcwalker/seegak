@@ -3,7 +3,7 @@
 export type ToolType = 'pan' | 'draw' | 'line' | 'box-select' | 'lasso' | 'eraser';
 
 /** Action buttons (non-toggle, fire-and-forget) */
-export type ActionType = 'download' | 'save-png' | 'save-svg';
+export type ActionType = 'download' | 'save-png' | 'save-svg' | 'toggle-grid';
 
 /** Preset tool sets */
 export type ToolPreset = 'full' | 'standard' | 'minimal';
@@ -15,8 +15,8 @@ const PRESET_TOOLS: Record<ToolPreset, ToolType[]> = {
 };
 
 const PRESET_ACTIONS: Record<ToolPreset, ActionType[]> = {
-  full:     ['download'],
-  standard: ['download'],
+  full:     ['toggle-grid', 'download'],
+  standard: ['toggle-grid', 'download'],
   minimal:  [],
 };
 
@@ -73,6 +73,14 @@ const ICONS: Record<ToolType | ActionType, string> = {
     <path d="M6.5 9.5L10 13l3.5-3.5"/>
     <text x="14" y="8" font-size="5" fill="currentColor" stroke="none" font-weight="bold">S</text>
   </svg>`,
+
+  'toggle-grid': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="14" height="14" rx="1"/>
+    <line x1="3" y1="7.7" x2="17" y2="7.7"/>
+    <line x1="3" y1="12.3" x2="17" y2="12.3"/>
+    <line x1="7.7" y1="3" x2="7.7" y2="17"/>
+    <line x1="12.3" y1="3" x2="12.3" y2="17"/>
+  </svg>`,
 };
 
 const LABELS: Record<ToolType | ActionType, string> = {
@@ -85,6 +93,7 @@ const LABELS: Record<ToolType | ActionType, string> = {
   download: 'Download',
   'save-png': 'Save PNG',
   'save-svg': 'Save SVG',
+  'toggle-grid': 'Toggle Grid',
 };
 
 // ─── ChartToolbar ───

@@ -244,6 +244,9 @@ export abstract class BaseChart {
       this.exportPNG();
     } else if (action === 'save-svg') {
       this.exportSVG();
+    } else if (action === 'toggle-grid') {
+      this.gridEnabled = !this.gridEnabled;
+      if (this._lastUpdateData != null) this.update(this._lastUpdateData);
     }
   }
 

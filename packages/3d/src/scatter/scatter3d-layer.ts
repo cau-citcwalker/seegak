@@ -4,6 +4,18 @@ import type { Scatter3DData, Scatter3DOptions } from '../types.js';
 import type { Mat4 } from '../math/mat4.js';
 import { mat4Multiply } from '../math/mat4.js';
 
+// ─── Viridis approximation (fast, no texture needed) ────────────────────────
+
+function viridisR(t: number): number {
+  return Math.max(0, Math.min(1, 0.267004 + t * (0.003215 + t * (-0.284565 + t * (1.971511 + t * (-1.228819))))));
+}
+function viridisG(t: number): number {
+  return Math.max(0, Math.min(1, 0.004874 + t * (1.015861 + t * (0.291879 + t * (-2.074591 + t * 1.564945)))));
+}
+function viridisB(t: number): number {
+  return Math.max(0, Math.min(1, 0.329415 + t * (1.421218 + t * (-4.349384 + t * (6.805082 + t * (-3.659499))))));
+}
+
 // ─── Shaders ─────────────────────────────────────────────────────────────────
 
 const SCATTER3D_VERT = /* glsl */ `#version 300 es
@@ -142,7 +154,7 @@ export class Scatter3DLayer implements RenderLayer {
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
-  setData(data: Scatter3DData, gl: WebGL2RenderingContext, flatten = false, hiddenLabels?: Set<string>): void {
+  setData(data: Scatter3DData, gl: WebGL2RenderingContext, flatten = false, hiddenLabels?: Set<string>, colorMode: 'cell-set' | 'expression' = 'cell-set'): void {
     if (!this.gl) this.gl = gl;
     this.freeGPU();
 
@@ -180,7 +192,14 @@ export class Scatter3DLayer implements RenderLayer {
       positions[out * 3 + 1] = data.y[i]!;
       positions[out * 3 + 2] = flatten ? 0 : data.z[i]!;
 
-      if (data.colors && data.colors.length === n) {
+      if (colorMode === 'expression' && data.values) {
+        // Viridis-like color from normalized value (0–1)
+        const v = data.values[i] ?? 0;
+        colors[out * 4]     = viridisR(v);
+        colors[out * 4 + 1] = viridisG(v);
+        colors[out * 4 + 2] = viridisB(v);
+        colors[out * 4 + 3] = 1;
+      } else if (data.colors && data.colors.length === n) {
         const c = hexToRGBA(data.colors[i]!);
         colors[out * 4] = c[0]; colors[out * 4 + 1] = c[1];
         colors[out * 4 + 2] = c[2]; colors[out * 4 + 3] = c[3];
