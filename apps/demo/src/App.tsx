@@ -52,7 +52,6 @@ import {
 
 type Section =
   | 'bio'
-  | 'expression'
   | '3d'
   | 'genomics'
   | 'analysis'
@@ -69,8 +68,7 @@ interface NavItem {
 // ─── Constants ───────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'bio',        icon: '◎', label: 'Bio Charts',    desc: 'Scatter · Bar · Pie · Box · Violin'    },
-  { id: 'expression', icon: '▦', label: 'Expression',    desc: 'Heatmap · DotPlot · FeaturePlot'       },
+  { id: 'bio',        icon: '◎', label: 'Bio Charts',    desc: 'Scatter · Bar · Pie · Box · Violin · Heatmap · DotPlot · FeaturePlot' },
   { id: '3d',         icon: '⬡', label: '3D',            desc: 'Scatter3D · Volume · Mesh'             },
   { id: 'genomics',   icon: '⬙', label: 'Genomics',      desc: 'Volcano · Enrichment · Profile'        },
   { id: 'analysis',   icon: '⬥', label: 'Analysis',      desc: 'Gating · ObsSet Tree'                  },
@@ -227,11 +225,15 @@ function Sidebar({
 function BioSection() {
   const scatter = useMemo(() => makeScatterData(), []);
   const zCoords = useMemo(() => makeScatter3DData().z, []);
+  const heatmap = useMemo(() => makeHeatmapData(), []);
+  const dotplot = useMemo(() => makeDotPlotData(), []);
+  const feature = useMemo(() => makeFeaturePlotData(scatter), [scatter]);
+
   return (
     <div className="grid gap-5">
-      {/* UMAP — full width */}
+      {/* Cell Type UMAP Clustering — full width */}
       <ChartCard
-        title="UMAP Embedding"
+        title="Cell Type UMAP Clustering"
         desc="2D projection · pan, lasso-select, box-select · 2D/3D toggle"
         height={420}
       >
@@ -242,7 +244,8 @@ function BioSection() {
           pointSize={4}
           opacity={0.82}
           autoFit
-          toolbar={{ preset: 'standard' }}
+          toolbar
+          toolbarPreset="standard"
           legend
           xLabel="UMAP 1"
           yLabel="UMAP 2"
@@ -268,18 +271,8 @@ function BioSection() {
           <ViolinPlotChart data={violinData} showBox tooltip />
         </ChartCard>
       </div>
-    </div>
-  );
-}
 
-function ExpressionSection() {
-  const scatter = useMemo(() => makeScatterData(), []);
-  const heatmap = useMemo(() => makeHeatmapData(), []);
-  const dotplot = useMemo(() => makeDotPlotData(), []);
-  const feature = useMemo(() => makeFeaturePlotData(scatter), [scatter]);
-
-  return (
-    <div className="grid gap-5">
+      {/* Heatmap — full width */}
       <ChartCard
         title="Gene × Cluster Heatmap"
         desc="9 marker genes · 5 clusters · z-score normalized"
@@ -288,6 +281,7 @@ function ExpressionSection() {
         <HeatmapChart data={heatmap} tooltip />
       </ChartCard>
 
+      {/* DotPlot + FeaturePlot */}
       <div className="grid grid-cols-2 gap-5">
         <ChartCard
           title="Dot Plot"
@@ -339,7 +333,8 @@ function ThreeDSection() {
           opacity={0.82}
           autoFit
           legend
-          toolbar={{ preset: 'standard' }}
+          toolbar
+          toolbarPreset="standard"
           xLabel="UMAP 1"
           yLabel="UMAP 2"
         />
@@ -420,7 +415,7 @@ function AnalysisSection() {
           desc="FSC-A vs SSC-A · draw gates · 3 populations"
           height={400}
         >
-          <GatingPlot data={gating} toolbar={{ preset: 'full' }} />
+          <GatingPlot data={gating} toolbar toolbarPreset="full" />
         </ChartCard>
 
         <div className="flex flex-col gap-4">
@@ -545,7 +540,6 @@ function BodyMapSection() {
 
 const SECTION_COMPONENTS: Record<Section, React.FC> = {
   bio:        BioSection,
-  expression: ExpressionSection,
   '3d':       ThreeDSection,
   genomics:   GenomicsSection,
   analysis:   AnalysisSection,
