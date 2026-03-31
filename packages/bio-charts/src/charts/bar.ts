@@ -266,12 +266,14 @@ export class BarChart extends BaseChart {
       const labelColor = { r: 0.8, g: 0.8, b: 0.8, a: 1 };
       const axisColor = { r: 0.6, g: 0.7, b: 0.8, a: 1 };
 
-      // Group labels — auto-rotate and truncate when labels overlap
+      // Group labels — auto-rotate, truncate, or collapse to colored dots
       const FONT = 11;
       const SIN45 = Math.sin(Math.PI / 4);
       const slotW = isVertical ? groupSize : (isVertical ? area.width : area.height) / n;
       const maxLabelW = groups.reduce((m, g) => Math.max(m, this.text.measure('label' in g ? g.label : `${g}`, FONT)), 0);
       const needsRotation = isVertical && maxLabelW > slotW * 0.85;
+      // When slot is too narrow even for rotated text, collapse to dot-only mode
+      const dotOnlyMode = isVertical && slotW < 18;
       // Reserve space for xLabel so group labels don't cover it
       const xLabelReserve = (isVertical && data.xLabel) ? 20 : 0;
       const labelStartOffset = needsRotation ? 12 : 8;
@@ -289,7 +291,15 @@ export class BarChart extends BaseChart {
         const center = (isVertical ? area.x : area.y) + groupSize * (i + 0.5);
         const rawLabel = 'label' in groups[i] ? groups[i].label : `${i}`;
 
-        if (isVertical) {
+        if (dotOnlyMode && isVertical) {
+          // Show a colored dot (●) instead of text label — full name appears in tooltip on hover
+          const g = groups[i];
+          const colorHex = ('color' in g && g.color) ? g.color : DEFAULT_COLORS[i % DEFAULT_COLORS.length];
+          const dotColor = hexToVec4(colorHex);
+          this.text.add('●', center, area.y + area.height + 6, {
+            color: dotColor, fontSize: 8, align: 'center', baseline: 'top',
+          });
+        } else if (isVertical) {
           this.text.add(fitLabel(rawLabel), center, area.y + area.height + labelStartOffset, {
             color: labelColor, fontSize: FONT,
             align: needsRotation ? 'right' : 'center', baseline: 'top',
