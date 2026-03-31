@@ -43,6 +43,8 @@ export interface Scatter3DData {
   labels?: string[];
   /** Per-point hex colors (takes priority over labels) */
   colors?: string[];
+  /** Per-point continuous values (0–1) for expression coloring */
+  values?: Float32Array;
 }
 
 export interface Scatter3DOptions extends BaseChartOptions {

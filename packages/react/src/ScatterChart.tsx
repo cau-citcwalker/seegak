@@ -106,7 +106,7 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
         const d = dataRef.current;
         const zz = zRef.current;
         if (d && zz) {
-          chart.setData({ x: d.x, y: d.y, z: zz, labels: d.labels, colors: d.colors });
+          chart.setData({ x: d.x, y: d.y, z: zz, labels: d.labels, colors: d.colors, values: d.values });
         }
         // Force render after layout settles — fixes blank screen on 2D→3D toggle
         requestAnimationFrame(() => {

@@ -18,6 +18,7 @@ export class Scatter3DView extends BaseChart {
   readonly toolbar3D: Scatter3DToolbar;
   private currentData: Scatter3DData | null = null;
   private _flatten: boolean;
+  private _colorMode: 'cell-set' | 'expression' = 'cell-set';
   private cellLegend: CellLegend | null = null;
   private hiddenClusters = new Set<string>();
 
@@ -46,9 +47,11 @@ export class Scatter3DView extends BaseChart {
       onFlattenChange: (v) => this.setFlatten(v),
       onPointSizeChange: (v) => this.setPointSize(v),
       onResetCamera: () => this.resetCamera(),
+      onColorByChange: (mode) => this.setColorMode(mode),
     }, {
       initialPointSize: options.pointSize ?? 4,
       initialFlatten: options.flatten ?? false,
+      showColorBy: true,
     });
 
     this.updateMatrices();
@@ -68,7 +71,7 @@ export class Scatter3DView extends BaseChart {
   setData(data: Scatter3DData): void {
     this.currentData = data;
     this.hiddenClusters.clear();
-    this.layer.setData(data, this.engine.gl, this._flatten);
+    this.layer.setData(data, this.engine.gl, this._flatten, undefined, this._colorMode);
 
     // Auto-fit camera to data bounds
     const bbox = this.computeBBox(data);
@@ -139,7 +142,7 @@ export class Scatter3DView extends BaseChart {
 
   private refreshWithHidden(): void {
     if (!this.currentData) return;
-    this.layer.setData(this.currentData, this.engine.gl, this._flatten, this.hiddenClusters);
+    this.layer.setData(this.currentData, this.engine.gl, this._flatten, this.hiddenClusters, this._colorMode);
     this.engine.requestRender();
   }
 
@@ -159,12 +162,24 @@ export class Scatter3DView extends BaseChart {
     this._flatten = flatten;
     this.toolbar3D.setFlatten(flatten);
     if (this.currentData) {
-      this.layer.setData(this.currentData, this.engine.gl, flatten, this.hiddenClusters);
+      this.layer.setData(this.currentData, this.engine.gl, flatten, this.hiddenClusters, this._colorMode);
       this.engine.requestRender();
     }
   }
 
   get flatten(): boolean { return this._flatten; }
+
+  /** Switch coloring between cluster labels and expression values */
+  setColorMode(mode: 'cell-set' | 'expression'): void {
+    if (mode === this._colorMode) return;
+    this._colorMode = mode;
+    this.toolbar3D.setColorBy(mode);
+    if (this.currentData) {
+      this.refreshWithHidden();
+    }
+  }
+
+  get colorMode(): 'cell-set' | 'expression' { return this._colorMode; }
 
   /** Get label→color mapping for external legend rendering */
   getLabelColors(): Array<{ label: string; color: string }> {
