@@ -106,3 +106,9 @@ const data = {
 
 <BarChart data={data} />
 ```
+
+## Label Overflow Behavior
+
+When there are too many categories and the bar width becomes very narrow (< 18px per slot), labels automatically collapse into small colored dots. The full category name is still visible on hover via the tooltip.
+
+This is useful when plotting datasets with 50+ categories (e.g., cell types from `dataset.h5ad` with 160 cell types).
