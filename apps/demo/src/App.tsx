@@ -226,6 +226,7 @@ function Sidebar({
 
 function BioSection() {
   const scatter = useMemo(() => makeScatterData(), []);
+  const zCoords = useMemo(() => makeScatter3DData().z, []);
   return (
     <div className="grid gap-5">
       {/* UMAP — full width */}
@@ -236,6 +237,8 @@ function BioSection() {
       >
         <ScatterChart
           data={scatter}
+          z={zCoords}
+          enable3D
           pointSize={4}
           opacity={0.82}
           autoFit
