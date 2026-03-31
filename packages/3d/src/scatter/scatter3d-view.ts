@@ -260,11 +260,32 @@ export class Scatter3DView extends BaseChart {
     window.removeEventListener('mouseup', this.onMouseUp);
   };
 
+  // Inertia zoom state
+  private targetDistance = 0;
+  private zoomAnimId = 0;
+
   private readonly onWheel = (e: WheelEvent): void => {
     e.preventDefault();
-    this.arcball.handleWheel(e.deltaY);
+    const factor = e.deltaY > 0 ? 1.1 : 0.9;
+    if (!this.zoomAnimId) this.targetDistance = this.arcball.getDistance();
+    this.targetDistance = Math.max(0.1, Math.min(100, this.targetDistance * factor));
+    if (!this.zoomAnimId) this.animateZoom();
+  };
+
+  private animateZoom = (): void => {
+    const current = this.arcball.getDistance();
+    const diff = this.targetDistance - current;
+    if (Math.abs(diff) < 0.001) {
+      this.arcball.setDistance(this.targetDistance);
+      this.updateMatrices();
+      this.engine.requestRender();
+      this.zoomAnimId = 0;
+      return;
+    }
+    this.arcball.setDistance(current + diff * 0.2);
     this.updateMatrices();
     this.engine.requestRender();
+    this.zoomAnimId = requestAnimationFrame(this.animateZoom);
   };
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
@@ -337,6 +358,7 @@ export class Scatter3DView extends BaseChart {
   }
 
   override destroy(): void {
+    if (this.zoomAnimId) cancelAnimationFrame(this.zoomAnimId);
     this.cellLegend?.destroy();
     this.toolbar3D.destroy();
     this.detachInteraction();
