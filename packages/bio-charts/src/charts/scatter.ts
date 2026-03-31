@@ -278,6 +278,9 @@ export class ScatterChart extends BaseChart {
     // Point size slider (floating, bottom-left)
     this.pointSizeSlider = this.createPointSizeSlider(container);
 
+    // Color-by toggle (floating, bottom-left, next to point size slider)
+    this.colorByToggle = this.createColorByToggle(container);
+
     // Selection via toolbar box/lasso tools
     if (options.onSelectPoints) {
       const cb = options.onSelectPoints;
@@ -312,6 +315,47 @@ export class ScatterChart extends BaseChart {
       this.setPointSize(parseFloat(slider.value));
     });
     wrap.appendChild(slider);
+
+    container.appendChild(wrap);
+    return wrap;
+  }
+
+  // ─── Color By Toggle ───
+
+  private colorByToggle: HTMLElement | null = null;
+
+  private createColorByToggle(container: HTMLElement): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:absolute;bottom:8px;left:170px;z-index:15;display:flex;align-items:center;gap:4px;background:rgba(20,20,20,0.82);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:4px 8px;backdrop-filter:blur(6px);';
+
+    const label = document.createElement('span');
+    label.textContent = 'Color';
+    label.style.cssText = 'color:rgba(200,200,200,0.7);font-size:11px;font-weight:600;';
+    wrap.appendChild(label);
+
+    const btnCellSet = document.createElement('button');
+    btnCellSet.textContent = 'Cell Set';
+    btnCellSet.type = 'button';
+    const btnExpr = document.createElement('button');
+    btnExpr.textContent = 'Expression';
+    btnExpr.type = 'button';
+
+    const btnStyle = 'border:none;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;';
+    const activeStyle = 'background:rgba(225,29,109,0.3);color:#ff6ba8;';
+    const inactiveStyle = 'background:transparent;color:rgba(200,200,200,0.5);';
+
+    const updateButtons = (): void => {
+      const isCellSet = this._colorMode === 'cell-set';
+      btnCellSet.style.cssText = btnStyle + (isCellSet ? activeStyle : inactiveStyle);
+      btnExpr.style.cssText = btnStyle + (isCellSet ? inactiveStyle : activeStyle);
+    };
+
+    btnCellSet.addEventListener('click', () => { this.setColorMode('cell-set'); updateButtons(); });
+    btnExpr.addEventListener('click', () => { this.setColorMode('expression'); updateButtons(); });
+
+    wrap.appendChild(btnCellSet);
+    wrap.appendChild(btnExpr);
+    updateButtons();
 
     container.appendChild(wrap);
     return wrap;
@@ -889,6 +933,7 @@ export class ScatterChart extends BaseChart {
 
   destroy(): void {
     this.pointSizeSlider?.remove();
+    this.colorByToggle?.remove();
     this.hullOverlay?.destroy();
     this.cellLegend?.destroy();
     this.tooltip?.destroy();
