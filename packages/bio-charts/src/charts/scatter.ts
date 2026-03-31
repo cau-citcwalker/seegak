@@ -739,9 +739,9 @@ export class ScatterChart extends BaseChart {
     const vh = this.engine.viewport.height / this.engine.viewport.pixelRatio;
     this.overlay.resize(vw, vh);
 
+    this.text.resize(vw, vh);
     if (this.showAxes && (this.xLabel || this.yLabel)) {
       const area = this.plotArea;
-      this.text.resize(vw, vh);
       const axisColor = { r: 0.6, g: 0.7, b: 0.8, a: 1 };
       if (this.xLabel) {
         this.text.add(this.xLabel, area.x + area.width / 2, area.y + area.height + 8, {
@@ -754,8 +754,8 @@ export class ScatterChart extends BaseChart {
           rotation: -Math.PI / 2,
         });
       }
-    this.text.flush();
     }
+    this.text.flush();
 
     this.engine.requestRender();
   }

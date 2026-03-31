@@ -82,7 +82,7 @@ export abstract class BaseChart {
 
     this.showAxes = options.axes !== false;
     this.gridEnabled = options.grid ?? false;
-    this.gridColor = options.gridColor ?? 'rgba(255,255,255,0.06)';
+    this.gridColor = options.gridColor ?? 'rgba(255,255,255,0.15)';
 
     this.engine = new RenderEngine(container);
 
