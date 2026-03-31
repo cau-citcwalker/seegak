@@ -93,6 +93,9 @@ export class TextRenderer {
     this.queue = [];
   }
 
+  /** Access the underlying 2D context for custom drawing (e.g. grid lines) */
+  get context(): CanvasRenderingContext2D { return this.ctx; }
+
   /** Measure text width in pixels */
   measure(text: string, fontSize: number): number {
     this.ctx.font = `${fontSize}px ${this.fontFamily}`;
