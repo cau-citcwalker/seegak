@@ -336,7 +336,6 @@ export class BarChart extends BaseChart {
       }
     }
 
-    this.drawGrid();
     this.text.flush();
     this.engine.requestRender();
   }

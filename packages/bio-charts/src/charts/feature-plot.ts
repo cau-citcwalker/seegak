@@ -294,7 +294,6 @@ export class FeaturePlotChart extends BaseChart {
       color: white, fontSize: 10, align: 'left', baseline: 'bottom',
     });
 
-    this.drawGrid();
     this.text.flush();
     this.engine.requestRender();
   }
