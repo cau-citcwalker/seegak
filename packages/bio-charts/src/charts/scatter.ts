@@ -754,7 +754,8 @@ export class ScatterChart extends BaseChart {
           rotation: -Math.PI / 2,
         });
       }
-      this.text.flush();
+      this.drawGrid();
+    this.text.flush();
     }
 
     this.engine.requestRender();

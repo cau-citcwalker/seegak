@@ -455,6 +455,7 @@ export class BoxPlotChart extends BaseChart {
       }
     }
 
+    this.drawGrid();
     this.text.flush();
     this.engine.requestRender();
   }

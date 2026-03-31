@@ -44,6 +44,10 @@ export interface BaseChartOptions {
   axes?: boolean;
   /** Allow drag to continue when cursor leaves the chart area. Default: false */
   outsideDrag?: boolean;
+  /** Show background grid lines. Default: false */
+  grid?: boolean;
+  /** Grid line color. Default: 'rgba(255,255,255,0.06)' */
+  gridColor?: string;
 }
 
 const DEFAULT_MARGIN: ChartMargin = { top: 40, right: 20, bottom: 60, left: 80 };
@@ -67,6 +71,9 @@ export abstract class BaseChart {
   readonly overlay: AnnotationOverlay;
   /** Download modal */
   private downloadModal: DownloadModal | null = null;
+  /** Grid settings */
+  protected gridEnabled: boolean;
+  protected gridColor: string;
 
   constructor(container: HTMLElement, options: BaseChartOptions = {}) {
     this.container = container;
@@ -74,6 +81,8 @@ export abstract class BaseChart {
     container.style.overflow = 'hidden';
 
     this.showAxes = options.axes !== false;
+    this.gridEnabled = options.grid ?? false;
+    this.gridColor = options.gridColor ?? 'rgba(255,255,255,0.06)';
 
     this.engine = new RenderEngine(container);
 
@@ -130,6 +139,39 @@ export abstract class BaseChart {
       width: v.width / v.pixelRatio - this.margin.left - this.margin.right,
       height: v.height / v.pixelRatio - this.margin.top - this.margin.bottom,
     };
+  }
+
+  /**
+   * Draw background grid lines in the plot area.
+   * Call this before text.flush() so grid is behind text.
+   * @param nX Number of vertical grid lines
+   * @param nY Number of horizontal grid lines
+   */
+  protected drawGrid(nX = 5, nY = 5): void {
+    if (!this.gridEnabled) return;
+    const area = this.plotArea;
+    const ctx = this.text.context;
+
+    ctx.strokeStyle = this.gridColor;
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (let i = 0; i <= nX; i++) {
+      const x = area.x + (area.width / nX) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, area.y);
+      ctx.lineTo(x, area.y + area.height);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let i = 0; i <= nY; i++) {
+      const y = area.y + (area.height / nY) * i;
+      ctx.beginPath();
+      ctx.moveTo(area.x, y);
+      ctx.lineTo(area.x + area.width, y);
+      ctx.stroke();
+    }
   }
 
   /** Last data passed to update(), used for re-rendering on resize */

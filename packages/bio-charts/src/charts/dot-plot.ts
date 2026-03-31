@@ -314,6 +314,7 @@ export class DotPlotChart extends BaseChart {
       }
     }
 
+    this.drawGrid();
     this.text.flush();
     this.engine.requestRender();
   }
