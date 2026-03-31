@@ -1,7 +1,7 @@
 import type { RenderLayer, RenderEngine } from './render-engine.js';
 import type { RenderState } from '../types.js';
 import { ShaderProgram } from './shader.js';
-import { ortho } from '../utils/math.js';
+import { cameraMatrix } from '../utils/math.js';
 
 // ─── Shaders ───
 
@@ -70,12 +70,11 @@ export class GridLayer implements RenderLayer {
 
     const cam = state.camera;
     const vp = state.viewport;
-    const w = vp.width / vp.pixelRatio;
-    const h = vp.height / vp.pixelRatio;
 
-    // Visible world-space bounds
-    const halfW = (w / 2) / cam.zoom;
-    const halfH = (h / 2) / cam.zoom;
+    // Use the same coordinate system as ScatterLayer (cameraMatrix uses aspect ratio)
+    const aspect = vp.width / vp.height;
+    const halfW = aspect / cam.zoom;
+    const halfH = 1 / cam.zoom;
     const xMin = cam.center.x - halfW;
     const xMax = cam.center.x + halfW;
     const yMin = cam.center.y - halfH;
@@ -111,8 +110,8 @@ export class GridLayer implements RenderLayer {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     gl.bindVertexArray(null);
 
-    // Build projection from camera (world → clip)
-    const proj = ortho(xMin, xMax, yMin, yMax, -1, 1);
+    // Use same projection as scatter layer
+    const proj = cameraMatrix(vp, cam);
 
     this.shader.use();
     this.shader.setUniform('u_projection', { type: 'mat4', value: proj });
@@ -130,10 +129,9 @@ export class GridLayer implements RenderLayer {
   getStep(engine: RenderEngine): number {
     const cam = engine.camera;
     const vp = engine.viewport;
-    const w = vp.width / vp.pixelRatio;
-    const h = vp.height / vp.pixelRatio;
-    const halfW = (w / 2) / cam.zoom;
-    const halfH = (h / 2) / cam.zoom;
+    const aspect = vp.width / vp.height;
+    const halfW = aspect / cam.zoom;
+    const halfH = 1 / cam.zoom;
     return niceStep(Math.max(halfW * 2, halfH * 2));
   }
 
