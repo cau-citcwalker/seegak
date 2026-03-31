@@ -146,7 +146,12 @@ export const ScatterChart = forwardRef<ScatterChartHandle, ScatterChartProps>(
     useEffect(() => {
       if (data == null) return;
       if (is3D) {
-        if (chart3DRef.current && z) {
+        if (!z || z.length === 0) {
+          // No z data available — force switch to 2D
+          setIs3D(false);
+          return;
+        }
+        if (chart3DRef.current) {
           chart3DRef.current.setData({ x: data.x, y: data.y, z, labels: data.labels, colors: data.colors });
         }
       } else {

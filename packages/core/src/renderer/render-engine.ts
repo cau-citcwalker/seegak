@@ -44,7 +44,7 @@ export class RenderEngine {
       alpha: true,
       antialias: true,
       premultipliedAlpha: false,
-      preserveDrawingBuffer: false,
+      preserveDrawingBuffer: true, // Prevents flicker on Safari during drag/animation
     });
 
     if (!gl) {
