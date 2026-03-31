@@ -1,5 +1,5 @@
 import {
-  RenderEngine, InteractionHandler, TextRenderer,
+  RenderEngine, InteractionHandler, TextRenderer, GridLayer,
   ChartToolbar, AnnotationOverlay, DownloadModal,
   exportToPNG, exportToSVG, exportCSV, downloadBlob, downloadSVG,
   type Camera, type Viewport,
@@ -74,6 +74,7 @@ export abstract class BaseChart {
   /** Grid settings */
   protected gridEnabled: boolean;
   protected gridColor: string;
+  protected gridLayer: GridLayer;
 
   constructor(container: HTMLElement, options: BaseChartOptions = {}) {
     this.container = container;
@@ -91,7 +92,44 @@ export abstract class BaseChart {
     this.overlay = new AnnotationOverlay(container, this.engine, isInteractive);
 
     this.text = new TextRenderer(container);
-    this.text.onPreFlush(this.drawGridImpl);
+
+    // World-space grid layer (rendered behind everything, moves with camera)
+    this.gridLayer = new GridLayer();
+    this.gridLayer.enabled = this.gridEnabled;
+    const gc = this.parseGridColor(this.gridColor);
+    this.gridLayer.color = gc;
+    this.engine.addLayer(this.gridLayer);
+
+    // Scale bar label (drawn on text canvas when grid is enabled)
+    this.text.onPreFlush((ctx) => {
+      if (!this.gridLayer.enabled) return;
+      const step = this.gridLayer.getStep(this.engine);
+      const stepPx = step * this.engine.camera.zoom;
+      const vw = this.engine.viewport.width / this.engine.viewport.pixelRatio;
+      const vh = this.engine.viewport.height / this.engine.viewport.pixelRatio;
+      const barLen = Math.min(stepPx, vw * 0.2);
+      const barX = vw - barLen - 16;
+      const barY = vh - 16;
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(barX, barY);
+      ctx.lineTo(barX + barLen, barY);
+      // End caps
+      ctx.moveTo(barX, barY - 4);
+      ctx.lineTo(barX, barY + 4);
+      ctx.moveTo(barX + barLen, barY - 4);
+      ctx.lineTo(barX + barLen, barY + 4);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const label = step >= 1 ? String(step) : step.toFixed(2);
+      ctx.fillText(label, barX + barLen / 2, barY - 6);
+    });
     const defaultMargin = this.showAxes ? DEFAULT_MARGIN : MINIMAL_MARGIN;
     this.margin = { ...defaultMargin, ...options.margin };
 
@@ -148,36 +186,23 @@ export abstract class BaseChart {
    * @param nX Number of vertical grid lines
    * @param nY Number of horizontal grid lines
    */
-  protected drawGrid(nX = 5, nY = 5): void {
-    // noop — grid is now drawn via preFlush callback registered in constructor
-    void nX; void nY;
+  protected drawGrid(): void {
+    // noop — grid is now handled by GridLayer (WebGL, world-space)
   }
 
-  private drawGridImpl = (ctx: CanvasRenderingContext2D): void => {
-    if (!this.gridEnabled) return;
-    const area = this.plotArea;
-
-    ctx.strokeStyle = this.gridColor;
-    ctx.lineWidth = 1;
-
-    // Vertical lines
-    for (let i = 0; i <= 5; i++) {
-      const x = area.x + (area.width / 5) * i;
-      ctx.beginPath();
-      ctx.moveTo(x, area.y);
-      ctx.lineTo(x, area.y + area.height);
-      ctx.stroke();
+  private parseGridColor(css: string): [number, number, number, number] {
+    const m = css.match(/rgba?\(([^)]+)\)/);
+    if (m) {
+      const parts = m[1].split(',').map(s => parseFloat(s.trim()));
+      return [
+        (parts[0] ?? 255) / 255,
+        (parts[1] ?? 255) / 255,
+        (parts[2] ?? 255) / 255,
+        parts[3] ?? 1,
+      ];
     }
-
-    // Horizontal lines
-    for (let i = 0; i <= 5; i++) {
-      const y = area.y + (area.height / 5) * i;
-      ctx.beginPath();
-      ctx.moveTo(area.x, y);
-      ctx.lineTo(area.x + area.width, y);
-      ctx.stroke();
-    }
-  };
+    return [1, 1, 1, 0.15];
+  }
 
   /** Last data passed to update(), used for re-rendering on resize */
   private _lastUpdateData: unknown = null;
@@ -251,7 +276,8 @@ export abstract class BaseChart {
       this.exportSVG();
     } else if (action === 'toggle-grid') {
       this.gridEnabled = !this.gridEnabled;
-      if (this._lastUpdateData != null) this.update(this._lastUpdateData);
+      this.gridLayer.enabled = this.gridEnabled;
+      this.engine.requestRender();
     }
   }
 
