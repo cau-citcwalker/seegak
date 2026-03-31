@@ -89,6 +89,9 @@ export class ArcballCamera {
     return mat4LookAt(eye, this.target, up);
   }
 
+  /** Get the current orbit distance. */
+  getDistance(): number { return this.distance; }
+
   /**
    * Set the camera's orbit distance.
    */
