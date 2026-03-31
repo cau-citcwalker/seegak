@@ -398,7 +398,6 @@ export class ViolinPlotChart extends BaseChart {
       }
     }
 
-    this.drawGrid();
     this.text.flush();
     this.engine.requestRender();
   }

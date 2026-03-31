@@ -91,6 +91,7 @@ export abstract class BaseChart {
     this.overlay = new AnnotationOverlay(container, this.engine, isInteractive);
 
     this.text = new TextRenderer(container);
+    this.text.onPreFlush(this.drawGridImpl);
     const defaultMargin = this.showAxes ? DEFAULT_MARGIN : MINIMAL_MARGIN;
     this.margin = { ...defaultMargin, ...options.margin };
 
@@ -148,16 +149,20 @@ export abstract class BaseChart {
    * @param nY Number of horizontal grid lines
    */
   protected drawGrid(nX = 5, nY = 5): void {
+    // noop — grid is now drawn via preFlush callback registered in constructor
+    void nX; void nY;
+  }
+
+  private drawGridImpl = (ctx: CanvasRenderingContext2D): void => {
     if (!this.gridEnabled) return;
     const area = this.plotArea;
-    const ctx = this.text.context;
 
     ctx.strokeStyle = this.gridColor;
     ctx.lineWidth = 1;
 
     // Vertical lines
-    for (let i = 0; i <= nX; i++) {
-      const x = area.x + (area.width / nX) * i;
+    for (let i = 0; i <= 5; i++) {
+      const x = area.x + (area.width / 5) * i;
       ctx.beginPath();
       ctx.moveTo(x, area.y);
       ctx.lineTo(x, area.y + area.height);
@@ -165,14 +170,14 @@ export abstract class BaseChart {
     }
 
     // Horizontal lines
-    for (let i = 0; i <= nY; i++) {
-      const y = area.y + (area.height / nY) * i;
+    for (let i = 0; i <= 5; i++) {
+      const y = area.y + (area.height / 5) * i;
       ctx.beginPath();
       ctx.moveTo(area.x, y);
       ctx.lineTo(area.x + area.width, y);
       ctx.stroke();
     }
-  }
+  };
 
   /** Last data passed to update(), used for re-rendering on resize */
   private _lastUpdateData: unknown = null;

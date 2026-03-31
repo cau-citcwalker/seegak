@@ -19,6 +19,7 @@ export class TextRenderer {
   private ctx: CanvasRenderingContext2D;
   private queue: TextEntry[] = [];
   private fontFamily = 'system-ui, -apple-system, sans-serif';
+  private preFlushCallbacks: Array<(ctx: CanvasRenderingContext2D) => void> = [];
 
   constructor(container: HTMLElement) {
     this.canvas = document.createElement('canvas');
@@ -65,10 +66,22 @@ export class TextRenderer {
     });
   }
 
+  /** Register a callback invoked after clear but before text rendering */
+  onPreFlush(cb: (ctx: CanvasRenderingContext2D) => void): () => void {
+    this.preFlushCallbacks.push(cb);
+    return () => {
+      const i = this.preFlushCallbacks.indexOf(cb);
+      if (i !== -1) this.preFlushCallbacks.splice(i, 1);
+    };
+  }
+
   /** Draw all queued text and clear the queue */
   flush(): void {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Pre-flush drawings (e.g. grid lines) — rendered behind text
+    for (const cb of this.preFlushCallbacks) cb(ctx);
 
     for (const entry of this.queue) {
       ctx.save();
