@@ -122,17 +122,50 @@ export class InteractionHandler {
     }
   };
 
+  // Inertia zoom state
+  private targetZoom = 1;
+  private zoomAnimId = 0;
+  private zoomInertia = true;
+
+  /** Enable/disable smooth inertia zoom (macOS trackpad friendly). Default: true */
+  set smoothZoom(v: boolean) { this.zoomInertia = v; }
+  get smoothZoom(): boolean { return this.zoomInertia; }
+
   private onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     const screen = this.screenPos(e);
     const world = this.toWorldPos(screen);
 
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    this.engine.camera.zoom *= factor;
-    this.engine.camera.zoom = Math.max(0.01, Math.min(1000, this.engine.camera.zoom));
+    // Sync target with current zoom in case it was changed externally (e.g. autoFit)
+    if (!this.zoomAnimId) this.targetZoom = this.engine.camera.zoom;
+    this.targetZoom = Math.max(0.01, Math.min(1000, this.targetZoom * factor));
 
-    this.engine.requestRender();
+    if (this.zoomInertia) {
+      if (!this.zoomAnimId) this.animateZoom();
+    } else {
+      this.engine.camera.zoom = this.targetZoom;
+      this.engine.requestRender();
+    }
+
     this.emit({ type: 'zoom', center: world, factor });
+  };
+
+  private animateZoom = (): void => {
+    const cam = this.engine.camera;
+    const diff = this.targetZoom - cam.zoom;
+
+    if (Math.abs(diff) < 0.001) {
+      cam.zoom = this.targetZoom;
+      this.engine.requestRender();
+      this.zoomAnimId = 0;
+      return;
+    }
+
+    // Lerp 20% per frame → smooth deceleration
+    cam.zoom += diff * 0.2;
+    this.engine.requestRender();
+    this.zoomAnimId = requestAnimationFrame(this.animateZoom);
   };
 
   // ─── Touch ───
@@ -192,6 +225,7 @@ export class InteractionHandler {
     // Clean up window listeners if outsideDrag was active
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup', this.onMouseUp);
+    if (this.zoomAnimId) cancelAnimationFrame(this.zoomAnimId);
     this.callbacks = [];
   }
 }
