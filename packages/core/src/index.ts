@@ -16,6 +16,7 @@ export { TextureManager } from './renderer/texture-manager.js';
 export { InteractionHandler } from './renderer/interaction-handler.js';
 export type { InteractionCallback } from './renderer/interaction-handler.js';
 export { TextRenderer } from './renderer/text-renderer.js';
+export { GridLayer } from './renderer/grid-layer.js';
 
 // Axis
 export { AxisBuilder, AxisLayer, generateTicks } from './renderer/axis-renderer.js';
