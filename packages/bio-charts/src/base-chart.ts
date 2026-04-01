@@ -75,6 +75,8 @@ export abstract class BaseChart {
   /** Grid settings */
   protected gridEnabled: boolean;
   protected gridColor: string;
+  private gridCanvas: HTMLCanvasElement = null!;
+  private gridCtx: CanvasRenderingContext2D = null!;
 
   constructor(container: HTMLElement, options: BaseChartOptions = {}) {
     this.container = container;
@@ -93,81 +95,14 @@ export abstract class BaseChart {
 
     this.text = new TextRenderer(container);
 
-    // Grid + scale bar drawn on text canvas using camera-aware worldToScreen
-    this.text.onPreFlush((ctx) => {
-      if (!this.gridEnabled) return;
+    // Separate grid canvas (between WebGL and annotation overlay)
+    this.gridCanvas = document.createElement('canvas');
+    this.gridCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;';
+    container.insertBefore(this.gridCanvas, this.text['canvas'] ?? null);
+    this.gridCtx = this.gridCanvas.getContext('2d')!;
 
-      const cam = this.engine.camera;
-      const vp = this.engine.viewport;
-      const pr = vp.pixelRatio;
-      const w = vp.width / pr;
-      const h = vp.height / pr;
-
-      // Compute visible world bounds
-      const aspect = vp.width / vp.height;
-      const halfW = aspect / cam.zoom;
-      const halfH = 1 / cam.zoom;
-      const xMin = cam.center.x - halfW;
-      const xMax = cam.center.x + halfW;
-      const yMin = cam.center.y - halfH;
-      const yMax = cam.center.y + halfH;
-      const range = Math.max(xMax - xMin, yMax - yMin);
-
-      // Nice step
-      const rough = range / 6;
-      const pow = Math.pow(10, Math.floor(Math.log10(rough)));
-      const frac = rough / pow;
-      const step = (frac <= 1.5 ? 1 : frac <= 3.5 ? 2 : frac <= 7.5 ? 5 : 10) * pow;
-
-      // Draw grid lines
-      ctx.strokeStyle = this.gridColor;
-      ctx.lineWidth = 1;
-
-      const startX = Math.floor(xMin / step) * step;
-      const startY = Math.floor(yMin / step) * step;
-
-      for (let wx = startX; wx <= xMax + step; wx += step) {
-        const s1 = worldToScreen({ x: wx, y: yMin }, vp, cam);
-        const s2 = worldToScreen({ x: wx, y: yMax }, vp, cam);
-        ctx.beginPath();
-        ctx.moveTo(s1.x / pr, s1.y / pr);
-        ctx.lineTo(s2.x / pr, s2.y / pr);
-        ctx.stroke();
-      }
-
-      for (let wy = startY; wy <= yMax + step; wy += step) {
-        const s1 = worldToScreen({ x: xMin, y: wy }, vp, cam);
-        const s2 = worldToScreen({ x: xMax, y: wy }, vp, cam);
-        ctx.beginPath();
-        ctx.moveTo(s1.x / pr, s1.y / pr);
-        ctx.lineTo(s2.x / pr, s2.y / pr);
-        ctx.stroke();
-      }
-
-      // Scale bar (bottom-right)
-      const s0 = worldToScreen({ x: 0, y: 0 }, vp, cam);
-      const s1 = worldToScreen({ x: step, y: 0 }, vp, cam);
-      const barLen = Math.abs(s1.x - s0.x) / pr;
-      const barX = w - barLen - 16;
-      const barY = h - 16;
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(barX, barY);
-      ctx.lineTo(barX + barLen, barY);
-      ctx.moveTo(barX, barY - 4);
-      ctx.lineTo(barX, barY + 4);
-      ctx.moveTo(barX + barLen, barY - 4);
-      ctx.lineTo(barX + barLen, barY + 4);
-      ctx.stroke();
-
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '10px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(step >= 1 ? String(step) : step.toFixed(2), barX + barLen / 2, barY - 6);
-    });
+    // Redraw grid on every render frame (follows camera pan/zoom)
+    this.engine.onPostRender(() => this.renderGrid());
     const defaultMargin = this.showAxes ? DEFAULT_MARGIN : MINIMAL_MARGIN;
     this.margin = { ...defaultMargin, ...options.margin };
 
@@ -228,6 +163,91 @@ export abstract class BaseChart {
     // noop — grid is now handled by GridLayer (WebGL, world-space)
   }
 
+
+  /** Render grid lines + scale bar on the dedicated grid canvas */
+  private renderGrid(): void {
+    const c = this.gridCanvas;
+    const ctx = this.gridCtx;
+    if (!c || !ctx) return;
+
+    const vp = this.engine.viewport;
+    const pr = vp.pixelRatio;
+    const w = vp.width / pr;
+    const h = vp.height / pr;
+
+    // Resize canvas if needed
+    if (c.width !== w || c.height !== h) {
+      c.width = w;
+      c.height = h;
+    }
+
+    ctx.clearRect(0, 0, w, h);
+    if (!this.gridEnabled) return;
+
+    const cam = this.engine.camera;
+    const aspect = vp.width / vp.height;
+    const halfW = aspect / cam.zoom;
+    const halfH = 1 / cam.zoom;
+    const xMin = cam.center.x - halfW;
+    const xMax = cam.center.x + halfW;
+    const yMin = cam.center.y - halfH;
+    const yMax = cam.center.y + halfH;
+    const range = Math.max(xMax - xMin, yMax - yMin);
+
+    // Nice step
+    const rough = range / 6;
+    const p = Math.pow(10, Math.floor(Math.log10(rough)));
+    const f = rough / p;
+    const step = (f <= 1.5 ? 1 : f <= 3.5 ? 2 : f <= 7.5 ? 5 : 10) * p;
+
+    // Grid lines
+    ctx.strokeStyle = this.gridColor;
+    ctx.lineWidth = 1;
+
+    const startX = Math.floor(xMin / step) * step;
+    const startY = Math.floor(yMin / step) * step;
+
+    for (let wx = startX; wx <= xMax + step; wx += step) {
+      const s1 = worldToScreen({ x: wx, y: yMin }, vp, cam);
+      const s2 = worldToScreen({ x: wx, y: yMax }, vp, cam);
+      ctx.beginPath();
+      ctx.moveTo(s1.x / pr, s1.y / pr);
+      ctx.lineTo(s2.x / pr, s2.y / pr);
+      ctx.stroke();
+    }
+    for (let wy = startY; wy <= yMax + step; wy += step) {
+      const s1 = worldToScreen({ x: xMin, y: wy }, vp, cam);
+      const s2 = worldToScreen({ x: xMax, y: wy }, vp, cam);
+      ctx.beginPath();
+      ctx.moveTo(s1.x / pr, s1.y / pr);
+      ctx.lineTo(s2.x / pr, s2.y / pr);
+      ctx.stroke();
+    }
+
+    // Scale bar (bottom-right)
+    const s0 = worldToScreen({ x: 0, y: 0 }, vp, cam);
+    const s1 = worldToScreen({ x: step, y: 0 }, vp, cam);
+    const barLen = Math.abs(s1.x - s0.x) / pr;
+    const barX = w - barLen - 16;
+    const barY = h - 16;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(barX, barY);
+    ctx.lineTo(barX + barLen, barY);
+    ctx.moveTo(barX, barY - 4);
+    ctx.lineTo(barX, barY + 4);
+    ctx.moveTo(barX + barLen, barY - 4);
+    ctx.lineTo(barX + barLen, barY + 4);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(step >= 1 ? String(step) : step.toFixed(2), barX + barLen / 2, barY - 6);
+  }
 
   /** Last data passed to update(), used for re-rendering on resize */
   private _lastUpdateData: unknown = null;
@@ -301,9 +321,7 @@ export abstract class BaseChart {
       this.exportSVG();
     } else if (action === 'toggle-grid') {
       this.gridEnabled = !this.gridEnabled;
-      // Re-render to update grid on text canvas
-      if (this._lastUpdateData != null) this.update(this._lastUpdateData);
-      else this.engine.requestRender();
+      this.engine.requestRender();
     }
   }
 
@@ -348,6 +366,7 @@ export abstract class BaseChart {
   }
 
   destroy(): void {
+    this.gridCanvas?.remove();
     this.downloadModal?.destroy();
     this.interaction?.destroy();
     this.overlay.destroy();
