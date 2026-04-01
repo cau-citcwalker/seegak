@@ -29,6 +29,7 @@ export class RenderEngine {
   private running = false;
   private frameCount = 0;
   private resizeCallbacks: Array<(w: number, h: number) => void> = [];
+  private postRenderCallbacks: Array<() => void> = [];
 
   viewport: Viewport = { x: 0, y: 0, width: 0, height: 0, pixelRatio: 1 };
   camera: Camera = { center: { x: 0, y: 0 }, zoom: 1 };
@@ -154,6 +155,8 @@ export class RenderEngine {
     for (const layer of this.layers) {
       layer.render(this, state);
     }
+
+    for (const cb of this.postRenderCallbacks) cb();
   };
 
   private loop = (): void => {
@@ -182,6 +185,15 @@ export class RenderEngine {
   requestRender(): void {
     if (this.running) return; // loop handles it
     requestAnimationFrame(this.renderFrame);
+  }
+
+  /** Register a callback invoked after each render frame */
+  onPostRender(cb: () => void): () => void {
+    this.postRenderCallbacks.push(cb);
+    return () => {
+      const i = this.postRenderCallbacks.indexOf(cb);
+      if (i !== -1) this.postRenderCallbacks.splice(i, 1);
+    };
   }
 
   /** Register a callback for canvas resize events */
