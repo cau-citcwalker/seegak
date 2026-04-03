@@ -315,16 +315,14 @@ function ThreeDSection() {
   const scatter3d = useMemo(() => makeScatter3DData(), []);
   const volume = useMemo(() => makeVolumeData(), []);
   const mesh = useMemo(() => makeMeshData(), []);
-  // z coords for ScatterChart toggle
   const zCoords = useMemo(() => scatter3d.z, [scatter3d]);
 
   return (
-    <div className="grid gap-5">
-      {/* ScatterChart with 2D/3D toggle */}
+    <div className="grid grid-cols-2 gap-5">
       <ChartCard
         title="UMAP — 2D / 3D Toggle"
-        desc="Click the 2D/3D button (top-right) to switch projection"
-        height={420}
+        desc="2D/3D 전환 버튼으로 투영 방식 전환"
+        height={380}
       >
         <ScatterChart
           data={scatter}
@@ -334,6 +332,7 @@ function ThreeDSection() {
           opacity={0.82}
           autoFit
           legend
+          tooltip
           toolbar
           toolbarPreset="standard"
           xLabel="UMAP 1"
@@ -341,27 +340,26 @@ function ThreeDSection() {
         />
       </ChartCard>
 
-      <div className="grid grid-cols-2 gap-5">
-        <ChartCard
-          title="3D Scatter View"
-          desc="Dedicated 3D UMAP · drag to rotate"
-          height={360}
-        >
-          <Scatter3DView data={scatter3d} pointSize={3} opacity={0.85} />
-        </ChartCard>
-        <ChartCard
-          title="Volume Rendering"
-          desc="32³ Gaussian blob · MIP / X-ray / ISO modes"
-          height={360}
-        >
-          <VolumeView data={volume} />
-        </ChartCard>
-      </div>
+      <ChartCard
+        title="3D Scatter View"
+        desc="3D UMAP · 드래그로 회전"
+        height={380}
+      >
+        <Scatter3DView data={scatter3d} pointSize={3} opacity={0.85} />
+      </ChartCard>
+
+      <ChartCard
+        title="Volume Rendering"
+        desc="32³ Gaussian blob · MIP / X-ray / ISO 모드"
+        height={380}
+      >
+        <VolumeView data={volume} />
+      </ChartCard>
 
       <ChartCard
         title="Mesh View"
-        desc="UV sphere · drag to rotate · wireframe toggle"
-        height={360}
+        desc="UV sphere · 드래그로 회전 · wireframe 전환"
+        height={380}
       >
         <MeshView data={mesh} />
       </ChartCard>
