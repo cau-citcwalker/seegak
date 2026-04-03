@@ -24,7 +24,7 @@ import type {
 export const CLUSTER_COLORS = ['#4e8ef7', '#f97316', '#22c55e', '#a855f7', '#ec4899'];
 export const CLUSTER_LABELS = ['T Cell', 'B Cell', 'NK Cell', 'Monocyte', 'Dendritic'];
 const GENES = ['CD3D', 'CD19', 'NCAM1', 'CD14', 'FCER1A', 'CD68', 'MS4A1', 'GNLY', 'NKG7'];
-const N = 800;
+const N = 3000;
 
 // ─── Utils ──────────────────────────────────────────────────
 
@@ -45,8 +45,8 @@ export function makeScatterData(): ScatterData {
   const centers: [number, number][] = [[-3, 2], [3, 2], [0, -3], [-2, -1], [2, -1]];
   for (let i = 0; i < N; i++) {
     const c = i % 5;
-    x[i] = centers[c][0] + (Math.random() - 0.5) * 2.5;
-    y[i] = centers[c][1] + (Math.random() - 0.5) * 2.5;
+    x[i] = gaussian(centers[c][0], 0.9);
+    y[i] = gaussian(centers[c][1], 0.9);
     colors.push(CLUSTER_COLORS[c]);
     labels.push(CLUSTER_LABELS[c]);
   }
@@ -144,9 +144,9 @@ export function makeScatter3DData(): Scatter3DData {
   ];
   for (let i = 0; i < N; i++) {
     const c = i % 5;
-    x[i] = centers[c][0] + (Math.random() - 0.5) * 2.5;
-    y[i] = centers[c][1] + (Math.random() - 0.5) * 2.5;
-    z[i] = centers[c][2] + (Math.random() - 0.5) * 2.5;
+    x[i] = gaussian(centers[c][0], 0.9);
+    y[i] = gaussian(centers[c][1], 0.9);
+    z[i] = gaussian(centers[c][2], 0.9);
     colors.push(CLUSTER_COLORS[c]);
     labels.push(CLUSTER_LABELS[c]);
   }
