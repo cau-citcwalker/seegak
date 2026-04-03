@@ -244,8 +244,9 @@ function BioSection() {
           pointSize={4}
           opacity={0.82}
           autoFit
+          tooltip
           toolbar
-          toolbarPreset="standard"
+          toolbarPreset="full"
           legend
           xLabel="UMAP 1"
           yLabel="UMAP 2"
