@@ -139,14 +139,16 @@ export function makeScatter3DData(): Scatter3DData {
   const colors: string[] = [];
   const labels: string[] = [];
 
+  // Spread clusters far apart so each appears as a distinct small blob (like seegak 3D view)
   const centers: [number, number, number][] = [
-    [-3, 2, 1], [3, 2, -1], [0, -3, 2], [-2, -1, -2], [2, -1, 0],
+    [-9, 6, 0], [0, 6, 0], [9, 6, 0],
+    [-5, -4, 0], [5, -4, 0],
   ];
   for (let i = 0; i < N; i++) {
     const c = i % 5;
-    x[i] = gaussian(centers[c][0], 0.9);
-    y[i] = gaussian(centers[c][1], 0.9);
-    z[i] = gaussian(centers[c][2], 0.9);
+    x[i] = gaussian(centers[c][0], 0.8);
+    y[i] = gaussian(centers[c][1], 0.8);
+    z[i] = gaussian(centers[c][2], 0.8);
     colors.push(CLUSTER_COLORS[c]);
     labels.push(CLUSTER_LABELS[c]);
   }
