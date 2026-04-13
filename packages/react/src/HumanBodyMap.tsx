@@ -20,6 +20,8 @@ export interface HumanBodyMapProps {
   hoverColor?: string;
   selectedColor?: string;
   activeColor?: string;
+  /** Filter body map to a single organ system (e.g. "respiratory"). null shows all. */
+  systemFilter?: string | null;
   style?: React.CSSProperties;
   className?: string;
 }
@@ -34,6 +36,7 @@ export function HumanBodyMap({
   hoverColor,
   selectedColor,
   activeColor,
+  systemFilter,
   style,
   className,
 }: HumanBodyMapProps) {
@@ -90,6 +93,11 @@ export function HumanBodyMap({
       mapRef.current.setData(data);
     }
   }, [data]);
+
+  // Update system filter
+  useEffect(() => {
+    mapRef.current?.setSystemFilter(systemFilter ?? null);
+  }, [systemFilter]);
 
   return (
     <div
