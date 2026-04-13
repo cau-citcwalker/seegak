@@ -23,6 +23,7 @@ precision highp float;
 
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec4 a_color;
+layout(location = 2) in float a_visible;
 
 uniform mat4 u_mvp;
 uniform float u_pointSize;
@@ -30,8 +31,14 @@ uniform float u_pointSize;
 out vec4 v_color;
 
 void main() {
+  // GPU-side visibility cull: skip rasterization entirely
+  if (a_visible < 0.5) {
+    gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // outside clip
+    gl_PointSize = 0.0;
+    v_color = vec4(0.0);
+    return;
+  }
   gl_Position = u_mvp * vec4(a_position, 1.0);
-  // Scale point size by depth so distant points are smaller
   float depth = gl_Position.w;
   gl_PointSize = clamp(u_pointSize * (2.0 / max(depth, 0.1)), 1.0, 64.0);
   v_color = a_color;
@@ -107,6 +114,9 @@ export class Scatter3DLayer implements RenderLayer {
   private vao: WebGLVertexArrayObject | null = null;
   private posBuffer: WebGLBuffer | null = null;
   private colorBuffer: WebGLBuffer | null = null;
+  private visBuffer: WebGLBuffer | null = null;
+  private labels: string[] | null = null;    // retained for cheap visibility updates
+  private visBytes: Uint8Array | null = null; // 1 = visible, 0 = hidden
 
   // ─── RenderLayer ───────────────────────────────────────────────────────────
 
@@ -159,23 +169,13 @@ export class Scatter3DLayer implements RenderLayer {
     this.freeGPU();
 
     const n = data.x.length;
-    const hasHidden = hiddenLabels && hiddenLabels.size > 0 && data.labels;
+    this.pointCount = n;
+    this.labels = data.labels ? Array.from(data.labels) : null;
 
-    // Count visible points
-    let visibleCount = n;
-    if (hasHidden) {
-      visibleCount = 0;
-      for (let i = 0; i < n; i++) {
-        if (!hiddenLabels.has(data.labels![i]!)) visibleCount++;
-      }
-    }
-    this.pointCount = visibleCount;
+    // Build full positions + colors (all points — visibility handled on GPU)
+    const positions = new Float32Array(n * 3);
+    const colors = new Float32Array(n * 4);
 
-    // Build position and color buffers with only visible points
-    const positions = new Float32Array(visibleCount * 3);
-    const colors = new Float32Array(visibleCount * 4);
-
-    // Pre-build label→color map for palette mode
     const labelMap = new Map<string, number>();
     if (data.labels && !data.colors) {
       for (const label of data.labels) {
@@ -183,36 +183,39 @@ export class Scatter3DLayer implements RenderLayer {
       }
     }
 
-    let out = 0;
     for (let i = 0; i < n; i++) {
-      // Skip hidden points entirely
-      if (hasHidden && hiddenLabels.has(data.labels![i]!)) continue;
-
-      positions[out * 3] = data.x[i]!;
-      positions[out * 3 + 1] = data.y[i]!;
-      positions[out * 3 + 2] = flatten ? 0 : data.z[i]!;
+      positions[i * 3] = data.x[i]!;
+      positions[i * 3 + 1] = data.y[i]!;
+      positions[i * 3 + 2] = flatten ? 0 : data.z[i]!;
 
       if (colorMode === 'expression' && data.values) {
-        // Viridis-like color from normalized value (0–1)
         const v = data.values[i] ?? 0;
-        colors[out * 4]     = viridisR(v);
-        colors[out * 4 + 1] = viridisG(v);
-        colors[out * 4 + 2] = viridisB(v);
-        colors[out * 4 + 3] = 1;
+        colors[i * 4]     = viridisR(v);
+        colors[i * 4 + 1] = viridisG(v);
+        colors[i * 4 + 2] = viridisB(v);
+        colors[i * 4 + 3] = 1;
       } else if (data.colors && data.colors.length === n) {
         const c = hexToRGBA(data.colors[i]!);
-        colors[out * 4] = c[0]; colors[out * 4 + 1] = c[1];
-        colors[out * 4 + 2] = c[2]; colors[out * 4 + 3] = c[3];
+        colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
+        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = c[3];
       } else if (data.labels) {
         const label = data.labels[i] ?? '';
         const c = hexToRGBA(CLUSTER_PALETTE[labelMap.get(label)! % CLUSTER_PALETTE.length]!);
-        colors[out * 4] = c[0]; colors[out * 4 + 1] = c[1];
-        colors[out * 4 + 2] = c[2]; colors[out * 4 + 3] = c[3];
+        colors[i * 4] = c[0]; colors[i * 4 + 1] = c[1];
+        colors[i * 4 + 2] = c[2]; colors[i * 4 + 3] = c[3];
       } else {
-        colors[out * 4] = 0.376; colors[out * 4 + 1] = 0.510;
-        colors[out * 4 + 2] = 0.953; colors[out * 4 + 3] = 1;
+        colors[i * 4] = 0.376; colors[i * 4 + 1] = 0.510;
+        colors[i * 4 + 2] = 0.953; colors[i * 4 + 3] = 1;
       }
-      out++;
+    }
+
+    // Build initial visibility mask
+    this.visBytes = new Uint8Array(n);
+    this.visBytes.fill(1);
+    if (hiddenLabels && hiddenLabels.size > 0 && data.labels) {
+      for (let i = 0; i < n; i++) {
+        if (hiddenLabels.has(data.labels[i]!)) this.visBytes[i] = 0;
+      }
     }
 
     // Upload to GPU
@@ -231,7 +234,34 @@ export class Scatter3DLayer implements RenderLayer {
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
 
+    this.visBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.visBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.visBytes, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(2);
+    // UNSIGNED_BYTE with normalized=true → 0/1 in shader as float
+    gl.vertexAttribPointer(2, 1, gl.UNSIGNED_BYTE, true, 0, 0);
+
     gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
+
+  /**
+   * Update per-point visibility without re-uploading positions/colors.
+   * O(nPoints) CPU (1 byte per point) + one bufferSubData call.
+   */
+  setVisibility(hiddenLabels: Set<string>): void {
+    const gl = this.gl;
+    if (!gl || !this.labels || !this.visBytes || !this.visBuffer) return;
+    const n = this.labels.length;
+    if (hiddenLabels.size === 0) {
+      this.visBytes.fill(1);
+    } else {
+      for (let i = 0; i < n; i++) {
+        this.visBytes[i] = hiddenLabels.has(this.labels[i]!) ? 0 : 1;
+      }
+    }
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.visBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.visBytes);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
@@ -255,5 +285,8 @@ export class Scatter3DLayer implements RenderLayer {
     if (this.vao) { gl.deleteVertexArray(this.vao); this.vao = null; }
     if (this.posBuffer) { gl.deleteBuffer(this.posBuffer); this.posBuffer = null; }
     if (this.colorBuffer) { gl.deleteBuffer(this.colorBuffer); this.colorBuffer = null; }
+    if (this.visBuffer) { gl.deleteBuffer(this.visBuffer); this.visBuffer = null; }
+    this.labels = null;
+    this.visBytes = null;
   }
 }

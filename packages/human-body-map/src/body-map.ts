@@ -27,6 +27,7 @@ export class HumanBodyMap {
   private selectedOrgans = new Set<string>();
   private callbacks: BodyMapCallback[] = [];
   private tooltipEl: HTMLDivElement | null = null;
+  private systemFilter: string | null = null;
 
   constructor(container: HTMLElement, options: BodyMapOptions = {}) {
     this.container = container;
@@ -244,6 +245,18 @@ export class HumanBodyMap {
     } else {
       path.setAttribute('fill', this.opts.defaultColor);
     }
+
+    // Apply system filter dim
+    const organDef = ANTERIOR_ORGANS.find(o => o.id === organId);
+    const dimmed = this.systemFilter !== null && organDef?.category !== this.systemFilter;
+    path.style.opacity = dimmed ? '0.2' : '1';
+    path.style.pointerEvents = dimmed ? 'none' : 'auto';
+  }
+
+  /** Filter body map to a single organ system (category). Pass null to show all. */
+  setSystemFilter(category: string | null): void {
+    this.systemFilter = category;
+    this.updateColors();
   }
 
   /** Listen for organ interaction events */

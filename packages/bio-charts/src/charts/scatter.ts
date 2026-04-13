@@ -27,10 +27,23 @@ layout(location = 2) in float a_colorData;
 
 uniform mat4 u_projection;
 uniform float u_pointSize;
+uniform sampler2D u_palette;
+uniform float u_colorMode; // 0=colorscale, 1=palette
 
 out float v_colorData;
 
 void main() {
+  // Palette-mode cluster visibility: if palette slot has alpha=0, cull entirely.
+  // Saves full rasterization cost when clusters are toggled off.
+  if (u_colorMode > 0.5) {
+    float palA = texture(u_palette, vec2((a_colorData + 0.5) / 256.0, 0.5)).a;
+    if (palA < 0.001) {
+      gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+      gl_PointSize = 0.0;
+      v_colorData = a_colorData;
+      return;
+    }
+  }
   gl_Position = u_projection * vec4(a_x, a_y, 0.0, 1.0);
   gl_PointSize = u_pointSize;
   v_colorData = a_colorData;
@@ -711,6 +724,15 @@ export class ScatterChart extends BaseChart {
 
     this.layer.setPointCount(n);
 
+    // ── Re-apply expression color mode if currently active (data update resets it) ──
+    if (this._colorMode === 'expression' && data.values) {
+      shader.setUniform('u_colorMode', { type: 'float', value: 0.0 });
+      this.engine.setBuffer('scatter_colordata', {
+        data: data.values, usage: 'dynamic', size: 1,
+      });
+      this.layer.colorDataGLType = this.engine.gl.FLOAT;
+    }
+
     // ── SpatialIndex: always defer to avoid blocking first frame ──
     this.spatialIndex = null;
     const capturedX = dx;
@@ -838,7 +860,7 @@ export class ScatterChart extends BaseChart {
       shader.setUniform('u_colorMode', { type: 'float', value: 0.0 });
       // Re-upload values as the color data attribute if available
       if (this.currentData?.values) {
-        this.engine.setBuffer('scatter_color', {
+        this.engine.setBuffer('scatter_colordata', {
           data: this.currentData.values,
           usage: 'dynamic',
           size: 1,
@@ -850,7 +872,7 @@ export class ScatterChart extends BaseChart {
       shader.setUniform('u_colorMode', { type: 'float', value: 1.0 });
       // Re-upload cluster indices if available
       if (this._clusterIdx) {
-        this.engine.setBuffer('scatter_color', {
+        this.engine.setBuffer('scatter_colordata', {
           data: this._clusterIdx,
           usage: 'dynamic',
           size: 1,
