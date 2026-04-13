@@ -142,7 +142,9 @@ export class Scatter3DView extends BaseChart {
 
   private refreshWithHidden(): void {
     if (!this.currentData) return;
-    this.layer.setData(this.currentData, this.engine.gl, this._flatten, this.hiddenClusters, this._colorMode);
+    // GPU-side cull: only update the visibility mask (Uint8Array per point).
+    // No position/color rebuild, no GPU re-upload of heavy buffers.
+    this.layer.setVisibility(this.hiddenClusters);
     this.engine.requestRender();
   }
 
