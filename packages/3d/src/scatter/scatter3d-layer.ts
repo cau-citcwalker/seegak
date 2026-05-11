@@ -210,8 +210,11 @@ export class Scatter3DLayer implements RenderLayer {
     }
 
     // Build initial visibility mask
+    // Visibility bytes: 255 = visible, 0 = hidden.
+    // UNSIGNED_BYTE attribute is normalized to [0,1], so 255 → 1.0 and 0 → 0.0
+    // (a previous bug used 1 → 0.0039 < 0.5, which culled every point).
     this.visBytes = new Uint8Array(n);
-    this.visBytes.fill(1);
+    this.visBytes.fill(255);
     if (hiddenLabels && hiddenLabels.size > 0 && data.labels) {
       for (let i = 0; i < n; i++) {
         if (hiddenLabels.has(data.labels[i]!)) this.visBytes[i] = 0;
@@ -254,10 +257,10 @@ export class Scatter3DLayer implements RenderLayer {
     if (!gl || !this.labels || !this.visBytes || !this.visBuffer) return;
     const n = this.labels.length;
     if (hiddenLabels.size === 0) {
-      this.visBytes.fill(1);
+      this.visBytes.fill(255);
     } else {
       for (let i = 0; i < n; i++) {
-        this.visBytes[i] = hiddenLabels.has(this.labels[i]!) ? 0 : 1;
+        this.visBytes[i] = hiddenLabels.has(this.labels[i]!) ? 0 : 255;
       }
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.visBuffer);
