@@ -28,19 +28,19 @@ importers:
         version: file:packages/bio-charts
       '@seegak/coordination':
         specifier: file:../seegak/packages/coordination
-        version: link:../seegak/packages/coordination
+        version: link:../react/packages/coordination
       '@seegak/core':
         specifier: file:../seegak/packages/core
-        version: link:../seegak/packages/core
+        version: link:../react/packages/core
       '@seegak/data-loaders':
         specifier: file:../seegak/packages/data-loaders
-        version: link:../seegak/packages/data-loaders
+        version: link:../react/packages/data-loaders
       '@seegak/genomics':
         specifier: file:../seegak/packages/genomics
         version: file:packages/genomics
       '@seegak/human-body-map':
         specifier: file:../seegak/packages/human-body-map
-        version: link:../seegak/packages/human-body-map
+        version: link:../react/packages/human-body-map
       '@seegak/react':
         specifier: file:../seegak/packages/react
         version: file:packages/react(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
