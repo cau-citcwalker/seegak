@@ -31,7 +31,7 @@ describe('organ paths', () => {
 
   it('all paths start with M (valid SVG path)', () => {
     for (const organ of ANTERIOR_ORGANS) {
-      expect(organ.path.trimStart().startsWith('M')).toBe(true);
+      if (organ.path) expect(organ.path.trimStart().startsWith('M')).toBe(true);
     }
   });
 

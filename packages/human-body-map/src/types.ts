@@ -2,8 +2,8 @@ export interface OrganDefinition {
   id: string;
   name: string;
   nameKo?: string;
-  /** SVG path d attribute */
-  path: string;
+  /** SVG path d attribute — legacy, not used by image-based renderer */
+  path?: string;
   /** Label position (relative to SVG viewBox) */
   labelX: number;
   labelY: number;
@@ -29,34 +29,6 @@ export interface OrganData {
   sampleCount?: number;
   /** Any additional metadata */
   metadata?: Record<string, unknown>;
-}
-
-export interface BodyMapOptions {
-  /** Width of the SVG container */
-  width?: number;
-  /** Height of the SVG container */
-  height?: number;
-  /** Default fill color for organs */
-  defaultColor?: string;
-  /** Hover fill color */
-  hoverColor?: string;
-  /** Selected fill color */
-  selectedColor?: string;
-  /** Color for organs with data */
-  activeColor?: string;
-  /** Show organ labels */
-  showLabels?: boolean;
-  /** Which body view to show */
-  view?: 'anterior' | 'posterior';
-  /** Gender for anatomical accuracy */
-  gender?: 'male' | 'female' | 'neutral';
-}
-
-export interface TooltipInfo {
-  organId: string;
-  organName: string;
-  position: { x: number; y: number };
-  data?: OrganData;
 }
 
 export type BodyMapEventType = 'click' | 'hover' | 'leave';

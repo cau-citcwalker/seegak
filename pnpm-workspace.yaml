@@ -1,3 +1,6 @@
 packages:
   - 'packages/*'
   - 'apps/*'
+  - '../seegak-test'
+allowBuilds:
+  cbor-extract: true

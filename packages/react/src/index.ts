@@ -27,6 +27,10 @@ export type { ViolinPlotChartProps, ViolinPlotChartHandle } from './ViolinPlotCh
 export { HumanBodyMap } from './HumanBodyMap.js';
 export type { HumanBodyMapProps } from './HumanBodyMap.js';
 
+// Body Map hook
+export { useOrganState } from './hooks/useOrganState.js';
+export type { OrganState } from './hooks/useOrganState.js';
+
 // Hook
 export { useChart } from './use-chart.js';
 
@@ -84,8 +88,9 @@ export type {
 } from '@seegak/bio-charts';
 
 export type {
-  OrganData, BodyMapOptions, BodyMapEvent,
+  OrganData, BodyMapEvent, OrganCategory,
 } from '@seegak/human-body-map';
+export { CATEGORY_COLORS, CATEGORY_LABELS, ANTERIOR_ORGANS } from '@seegak/human-body-map';
 
 export type {
   ColorScale, Vec2, Vec4, ToolType, SelectionEvent,
