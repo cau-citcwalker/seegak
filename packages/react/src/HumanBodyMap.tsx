@@ -60,6 +60,8 @@ export interface HumanBodyMapProps {
   data?: Record<string, OrganData>;
   /** Called when an organ is clicked */
   onOrganClick?: (event: BodyMapEvent) => void;
+  /** Called when the full selection set changes — receives all currently selected organ IDs */
+  onSelectionChange?: (ids: string[]) => void;
   /** Called when hovering over an organ */
   onOrganHover?: (event: BodyMapEvent) => void;
   /** Called when leaving an organ */
@@ -73,6 +75,7 @@ export interface HumanBodyMapProps {
 export function HumanBodyMap({
   data,
   onOrganClick,
+  onSelectionChange,
   onOrganHover,
   onOrganLeave,
   systemFilter,
@@ -105,21 +108,23 @@ export function HumanBodyMap({
 
   // Stable callback refs so event handlers don't recreate on every render
   const onClickRef = useRef(onOrganClick);
+  const onSelectionChangeRef = useRef(onSelectionChange);
   const onHoverRef = useRef(onOrganHover);
   const onLeaveRef = useRef(onOrganLeave);
   const dataRef = useRef(data);
   onClickRef.current = onOrganClick;
+  onSelectionChangeRef.current = onSelectionChange;
   onHoverRef.current = onOrganHover;
   onLeaveRef.current = onOrganLeave;
   dataRef.current = data;
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const hoveredIdRef = useRef<string | null>(null);
 
   // Reset selection when system filter changes
   useEffect(() => {
-    setSelectedId(null);
+    setSelectedIds([]);
     setHoveredId(null);
     hoveredIdRef.current = null;
   }, [systemFilter]);
@@ -210,7 +215,13 @@ export function HumanBodyMap({
     const id = getOrganAt(xFrac, yFrac);
     if (!id || !isOrganActive(id)) return;
 
-    setSelectedId(prev => (prev === id ? null : id));
+    let next: string[];
+    setSelectedIds(prev => {
+      next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      return next;
+    });
+    // Schedule callback after state update settles
+    requestAnimationFrame(() => onSelectionChangeRef.current?.(next));
     onClickRef.current?.(makeEvent('click', id, e));
   }, [getOrganAt, isOrganActive, makeEvent]);
 
@@ -256,7 +267,7 @@ export function HumanBodyMap({
 
           const isActive = !systemFilter || organ.category === systemFilter;
           const isHovered = hoveredId === id;
-          const isSelected = selectedId === id;
+          const isSelected = selectedIds.includes(id);
           const color = CATEGORY_COLORS[organ.category as OrganCategory] ?? '#80a0b0';
 
           let filter: string;
@@ -292,7 +303,7 @@ export function HumanBodyMap({
                 objectFit: 'fill', pointerEvents: 'none',
                 transition: 'filter 0.2s ease',
                 filter,
-                mixBlendMode: 'multiply',
+                mixBlendMode: isSelected ? 'normal' : 'multiply',
               }}
               draggable={false}
             />
