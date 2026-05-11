@@ -1,4 +1,30 @@
-import type { OrganDefinition } from '../types.js';
+import type { OrganDefinition, OrganCategory } from '../types.js';
+
+export const CATEGORY_COLORS: Record<OrganCategory, string> = {
+  nervous:        '#c5a3e8',
+  respiratory:    '#80c4e8',
+  cardiovascular: '#f07070',
+  digestive:      '#70d4a0',
+  urinary:        '#f0d060',
+  endocrine:      '#f0a870',
+  lymphatic:      '#d490d4',
+  reproductive:   '#f0a0b8',
+  musculoskeletal: '#a8c4d4',
+  integumentary:  '#d4c4a8',
+};
+
+export const CATEGORY_LABELS: Record<OrganCategory, string> = {
+  nervous:        'Nervous',
+  respiratory:    'Respiratory',
+  cardiovascular: 'Cardiovascular',
+  digestive:      'Digestive',
+  urinary:        'Urinary',
+  endocrine:      'Endocrine',
+  lymphatic:      'Lymphatic',
+  reproductive:   'Reproductive',
+  musculoskeletal: 'Musculoskeletal',
+  integumentary:  'Integumentary',
+};
 
 /**
  * SVG path definitions for human organs (anterior view).
@@ -403,4 +429,4 @@ export const ANTERIOR_ORGANS: OrganDefinition[] = [
 ];
 
 /** Body outline for the silhouette background — matches skin path */
-export const BODY_OUTLINE = ANTERIOR_ORGANS.find(o => o.id === 'skin')!.path;
+export const BODY_OUTLINE = ANTERIOR_ORGANS.find(o => o.id === 'skin')!.path!;

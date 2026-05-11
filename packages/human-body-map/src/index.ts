@@ -1,7 +1,5 @@
-export { HumanBodyMap } from './body-map.js';
 export type {
   OrganDefinition, OrganCategory, OrganData,
-  BodyMapOptions, BodyMapEvent, BodyMapEventType,
-  BodyMapCallback, TooltipInfo,
+  BodyMapEvent, BodyMapEventType, BodyMapCallback,
 } from './types.js';
-export { ANTERIOR_ORGANS, BODY_OUTLINE } from './organs/organ-paths.js';
+export { ANTERIOR_ORGANS, BODY_OUTLINE, CATEGORY_COLORS, CATEGORY_LABELS } from './organs/organ-paths.js';

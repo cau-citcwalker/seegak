@@ -13,7 +13,7 @@
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"const {cpSync}=require('fs');cpSync('src/organs','dist/organs',{recursive:true})\"",
     "dev": "tsc --watch",
     "clean": "rm -rf dist"
   },
